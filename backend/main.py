@@ -797,24 +797,48 @@ async def get_doppler_frames():
 
 @app.get("/api/rainfall/latest")
 async def get_rainfall_latest():
-    if not rainfall_buffer:
-        raise HTTPException(status_code=404, detail="No frames available")
-    f = rainfall_buffer[-1]
-    return {
-        "url": f"{f['url']}?v={f['timestamp']}",
-        "timestamp": f["timestamp"]
-    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get("https://api.mumbaiflood.in/aws/nowcast-rainfall/")
+            r.raise_for_status()
+            data = r.json()
+            png_file = data.get("png_file", "")
+            url = f"https://api.mumbaiflood.in/{png_file.lstrip('/')}"
+            return {
+                "url": url,
+                "timestamp": data.get("timestamp", "")
+            }
+    except Exception as e:
+        if rainfall_buffer:
+            f = rainfall_buffer[-1]
+            return {
+                "url": f"{f['url']}?v={f['timestamp']}",
+                "timestamp": f["timestamp"]
+            }
+        raise HTTPException(status_code=500, detail=f"Failed to fetch nowcast: {e}")
 
 
 @app.get("/api/doppler/latest")
 async def get_doppler_latest():
-    if not doppler_buffer:
-        raise HTTPException(status_code=404, detail="No frames available")
-    f = doppler_buffer[-1]
-    return {
-        "url": f"{f['url']}?v={f['timestamp']}",
-        "timestamp": f["timestamp"]
-    }
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            r = await client.get("https://api.mumbaiflood.in/aws/radar-gif/")
+            r.raise_for_status()
+            data = r.json()
+            gif_file = data.get("gif_file", "")
+            url = f"https://api.mumbaiflood.in/{gif_file.lstrip('/')}"
+            return {
+                "url": url,
+                "timestamp": data.get("timestamp", "")
+            }
+    except Exception as e:
+        if doppler_buffer:
+            f = doppler_buffer[-1]
+            return {
+                "url": f"{f['url']}?v={f['timestamp']}",
+                "timestamp": f["timestamp"]
+            }
+        raise HTTPException(status_code=500, detail=f"Failed to fetch doppler: {e}")
 
 
 @app.get("/rainfall/{area}")
