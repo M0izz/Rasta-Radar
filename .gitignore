@@ -49,3 +49,7 @@ npm-debug.log*
 .pytest_cache/
 htmlcov/
 .coverage
+
+# Generated Radar Images
+backend/static/
+
