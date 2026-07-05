@@ -1,50 +1,67 @@
 import { useState, useEffect } from 'react'
-import { CloudRain, Activity, RefreshCw } from 'lucide-react'
-import RadarLoop from '../components/RadarLoop'
-import { fetchRainfallFrames, fetchDopplerFrames } from '../api/floodData'
+import { CloudRain, Activity, RefreshCw, AlertCircle } from 'lucide-react'
+import { fetchRainfallLatest, fetchDopplerLatest } from '../api/floodData'
 
 export default function Nowcast() {
   const [refreshing, setRefreshing] = useState(false)
-  const [times, setTimes] = useState({ nowcast: '', doppler: '' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  
+  const [rainfall, setRainfall] = useState(null)
+  const [doppler, setDoppler] = useState(null)
 
-  const formatTime = (offsetSeconds) => {
-    const now = new Date()
-    now.setSeconds(now.getSeconds() - offsetSeconds)
-    
-    const day = now.getDate()
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    const month = months[now.getMonth()]
-    const year = now.getFullYear()
-    
-    let hours = now.getHours()
-    const ampm = hours >= 12 ? 'pm' : 'am'
-    hours = hours % 12
-    hours = hours ? hours : 12
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    const seconds = String(now.getSeconds()).padStart(2, '0')
-    
-    return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds} ${ampm} IST`
+  const loadLatestImages = () => {
+    setLoading(true)
+    Promise.all([fetchRainfallLatest(), fetchDopplerLatest()])
+      .then(([rainData, dopplerData]) => {
+        setRainfall(rainData)
+        setDoppler(dopplerData)
+      })
+      .catch((err) => {
+        console.error(err)
+        setError('Could not load latest radar images.')
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }
 
-  // Ticks real-time time offsets every second to keep the dashboard live!
   useEffect(() => {
-    const updateTimes = () => {
-      setTimes({
-        nowcast: formatTime(360), // 6 minutes ago
-        doppler: formatTime(240)  // 4 minutes ago
-      })
-    }
-    updateTimes()
-    const timer = setInterval(updateTimes, 1000)
-    return () => clearInterval(timer)
+    loadLatestImages()
   }, [])
 
   const handleRefresh = () => {
     setRefreshing(true)
-    setTimeout(() => {
-      setRefreshing(false)
-    }, 800)
+    Promise.all([fetchRainfallLatest(), fetchDopplerLatest()])
+      .then(([rainData, dopplerData]) => {
+        setRainfall(rainData)
+        setDoppler(dopplerData)
+      })
+      .catch(console.error)
+      .finally(() => {
+        setTimeout(() => setRefreshing(false), 500)
+      })
   }
+
+  const formatIST = (isoString) => {
+    if (!isoString) return ''
+    const d = new Date(isoString)
+    const day = d.getDate()
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = months[d.getMonth()]
+    const year = d.getFullYear()
+    
+    let hours = d.getHours()
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12
+    hours = hours ? hours : 12
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    
+    return `${day} ${month} ${year}, ${hours}:${minutes} ${ampm} IST`
+  }
+
+  if (loading) return <div className="loading-screen">Loading radar images…</div>
+  if (error) return <div className="detail-page"><div className="error-msg">{error}</div></div>
 
   return (
     <div className="nowcast-page">
@@ -58,7 +75,7 @@ export default function Nowcast() {
       {/* Pill buttons controls row */}
       <div className="nowcast-controls-row">
         <div className="nowcast-pills">
-          <button className="nowcast-pill active">90 min forecast</button>
+          <button className="nowcast-pill active">Latest imagery</button>
           <button className="nowcast-pill">IMD RMC Mumbai</button>
           <button className="nowcast-pill">Doppler radar</button>
         </div>
@@ -68,7 +85,7 @@ export default function Nowcast() {
           disabled={refreshing}
         >
           <RefreshCw size={13} />
-          {refreshing ? 'Refreshing…' : 'Refresh data'}
+          {refreshing ? 'Refreshing…' : 'Refresh image'}
         </button>
       </div>
 
@@ -82,16 +99,27 @@ export default function Nowcast() {
             </div>
             <div className="nowcast-card-info">
               <h2>Rainfall Nowcast</h2>
-              <p>Predicted rainfall intensity</p>
+              <p>Current rainfall intensity</p>
             </div>
           </div>
           <div className="nowcast-image-container">
-            <RadarLoop 
-              fetchFramesFn={fetchRainfallFrames} 
-              alt="Rainfall Nowcast MMR" 
-              className="radar-img" 
-            />
-            <div className="radar-sweep-overlay rain" />
+            {rainfall?.url ? (
+              <>
+                <img 
+                  src={rainfall.url} 
+                  alt="Rainfall Nowcast MMR" 
+                  className="radar-img" 
+                />
+                <div className="radar-time-badge glassmorphic">
+                  {formatIST(rainfall.timestamp)}
+                </div>
+              </>
+            ) : (
+              <div className="empty-alert-state">
+                <AlertCircle size={16} />
+                <span>No rainfall image available.</span>
+              </div>
+            )}
           </div>
 
           {/* Color Metrics Legend */}
@@ -108,7 +136,7 @@ export default function Nowcast() {
           </div>
 
           <div className="nowcast-card-footer">
-            <span>Base time: {times.nowcast}</span>
+            <span>Telemetred timestamp: {formatIST(rainfall?.timestamp)}</span>
           </div>
         </div>
 
@@ -120,7 +148,7 @@ export default function Nowcast() {
             </div>
             <div className="nowcast-card-info">
               <h2>Doppler Radar</h2>
-              <p>Animated reflectivity loop</p>
+              <p>Current reflectivity index</p>
             </div>
             <span className="live-pulse-badge">
               <span className="dot" />
@@ -128,12 +156,23 @@ export default function Nowcast() {
             </span>
           </div>
           <div className="nowcast-image-container">
-            <RadarLoop 
-              fetchFramesFn={fetchDopplerFrames} 
-              alt="Doppler Radar MMR" 
-              className="radar-img" 
-            />
-            <div className="radar-sweep-overlay doppler" />
+            {doppler?.url ? (
+              <>
+                <img 
+                  src={doppler.url} 
+                  alt="Doppler Radar MMR" 
+                  className="radar-img" 
+                />
+                <div className="radar-time-badge glassmorphic">
+                  {formatIST(doppler.timestamp)}
+                </div>
+              </>
+            ) : (
+              <div className="empty-alert-state">
+                <AlertCircle size={16} />
+                <span>No Doppler image available.</span>
+              </div>
+            )}
           </div>
 
           {/* Color Metrics Legend */}
@@ -149,7 +188,7 @@ export default function Nowcast() {
           </div>
 
           <div className="nowcast-card-footer">
-            <span>Base time: {times.doppler}</span>
+            <span>Telemetred timestamp: {formatIST(doppler?.timestamp)}</span>
           </div>
         </div>
       </div>

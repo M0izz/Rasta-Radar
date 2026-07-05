@@ -95,3 +95,15 @@ export async function fetchDopplerFrames() {
   return res.json()
 }
 
+export async function fetchRainfallLatest() {
+  const res = await fetch(`${BASE}/api/rainfall/latest`)
+  if (!res.ok) throw new Error('Failed to fetch latest rainfall')
+  return res.json()
+}
+
+export async function fetchDopplerLatest() {
+  const res = await fetch(`${BASE}/api/doppler/latest`)
+  if (!res.ok) throw new Error('Failed to fetch latest doppler')
+  return res.json()
+}
+
