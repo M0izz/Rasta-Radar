@@ -1,0 +1,362 @@
+{
+  "hindmata": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "milan_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "andheri_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kings_circle": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "chunabhatti": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kurla_lbs": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dharavi_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "sion_circle": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "parel_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "bhandup_complex": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "vikhroli_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "ghatkopar_lbs": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "santacruz_airport_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "malad_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "goregaon_rmk": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "jogeshwari_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "bandra_reclamation": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "worli_sea_face": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "haji_ali": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "matunga_east": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "gtb_nagar": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "powai_lake_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mankhurd": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mulund_check_naka": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "borivali_ic_colony": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kandivali_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dahisar_naka": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_creek_bridge": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "wadala_truck_terminus": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "elphinstone_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "byculla_bridge": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "masjid_bunder": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "colaba_causeway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "ghatkopar_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "versova": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_station_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_kopri": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_mhatre_nagar": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_cadbury_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "thane_naupada": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kalwa_bridge": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mumbra_bypass": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "diva_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "vashi_sector_10": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "vashi_turbe_naka": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "airoli_sector_6": {
+    "confirms": 1,
+    "denies": 0
+  },
+  "ghansoli_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kopar_khairane": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "sanpada_flyover": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "nerul_sector_21": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "belapur_cbn": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kharghar_sector_35": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "panvel_old_market": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kamothe_sector_5": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "trans_harbour_airoli_side": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "jasai_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dronagiri_node": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "funde_junction": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "bokadvira_stretch": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dungi_village": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kombadbhuje_nullah": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "ulwe_sector_19_20": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "belapur_ulwe_flyover": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "borivali_sv_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "borivali_gorai_creek": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dahisar_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dahisar_ketkipada": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "miraroad_station": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "bhayandar_west": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "miraroad_kashimira": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "vasai_road_east": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "nallasopara_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "virar_west": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "naigaon_east": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "dadar_chowpatty": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "andheri_sv_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "andheri_gundavali": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kurla_bail_bazar": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "sion_station_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "khar_subway": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "juhu_tara_road": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "chembur_shell_colony": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mulund_lbs_jnj": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "nana_chowk": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kalamboli_circle": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kalamboli_sector_1e": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mansarovar_underpass": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "mansarovar_sector_11": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kharghar_hiranandani_chowk": {
+    "confirms": 0,
+    "denies": 0
+  },
+  "kharghar_kopra_junction": {
+    "confirms": 0,
+    "denies": 0
+  }
+}
