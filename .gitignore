@@ -52,4 +52,5 @@ htmlcov/
 
 # Generated Radar Images
 backend/static/
+backend/scratch/
 
