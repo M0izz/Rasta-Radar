@@ -793,25 +793,13 @@ async def get_doppler_frames():
 
 @app.get("/api/rainfall/latest")
 async def get_rainfall_latest():
-    try:
-        async with httpx.AsyncClient(timeout=8.0) as client:
-            r = await client.get("https://api.mumbaiflood.in/aws/nowcast-rainfall/")
-            r.raise_for_status()
-            data = r.json()
-            png_file = data.get("png_file", "")
-            url = f"https://api.mumbaiflood.in/{png_file.lstrip('/')}"
-            return {
-                "url": url,
-                "timestamp": data.get("timestamp", "")
-            }
-    except Exception as e:
-        if rainfall_buffer:
-            f = rainfall_buffer[-1]
-            return {
-                "url": f"{f['url']}?v={f['timestamp']}",
-                "timestamp": f["timestamp"]
-            }
-        raise HTTPException(status_code=500, detail=f"Failed to fetch nowcast: {e}")
+    if not rainfall_buffer:
+        raise HTTPException(status_code=404, detail="No frames available")
+    f = rainfall_buffer[-1]
+    return {
+        "url": f"{f['url']}?v={f['timestamp']}",
+        "timestamp": f["timestamp"]
+    }
 
 
 @app.get("/api/doppler/latest")
