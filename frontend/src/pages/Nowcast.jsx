@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CloudRain, Activity, RefreshCw, AlertCircle } from 'lucide-react'
-import { fetchRainfallLatest, fetchDopplerLatest } from '../api/floodData'
+import { fetchRainfallLatest, fetchDopplerLatest, fetchRainfallFrames } from '../api/floodData'
+import RadarLoop from '../components/RadarLoop'
 
 export default function Nowcast() {
   const [refreshing, setRefreshing] = useState(false)
@@ -9,6 +10,7 @@ export default function Nowcast() {
   
   const [rainfall, setRainfall] = useState(null)
   const [doppler, setDoppler] = useState(null)
+  const [rainfallFrame, setRainfallFrame] = useState(null)
 
   const loadLatestImages = () => {
     setLoading(true)
@@ -99,22 +101,16 @@ export default function Nowcast() {
             </div>
             <div className="nowcast-card-info">
               <h2>Rainfall Nowcast</h2>
-              <p>Current rainfall intensity • {formatIST(rainfall?.timestamp)}</p>
+              <p>Current rainfall intensity • {rainfallFrame ? formatIST(rainfallFrame.timestamp) : ''}</p>
             </div>
           </div>
-          <div className="nowcast-image-container">
-            {rainfall?.url ? (
-              <img 
-                src={rainfall.url} 
-                alt="Rainfall Nowcast MMR" 
-                className="radar-img" 
-              />
-            ) : (
-              <div className="empty-alert-state">
-                <AlertCircle size={16} />
-                <span>No rainfall image available.</span>
-              </div>
-            )}
+          <div className="nowcast-image-container" style={{ paddingBottom: '8px' }}>
+            <RadarLoop 
+              fetchFramesFn={fetchRainfallFrames} 
+              alt="Rainfall Nowcast MMR" 
+              className="radar-img" 
+              onFrameChange={(frame) => setRainfallFrame(frame)}
+            />
           </div>
 
           <div className="nowcast-card-footer">

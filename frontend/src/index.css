@@ -2146,6 +2146,81 @@ button {
   border-radius: 4px;
 }
 
+.radar-loop-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.radar-image-overlay-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.radar-controls-bar {
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: rgba(247, 250, 252, 0.8);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.radar-play-btn {
+  background: #1a6e7e;
+  color: #ffffff;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.radar-play-btn:hover {
+  background: #155562;
+}
+
+.radar-timeline-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: #cbd5e0;
+  outline: none;
+  cursor: pointer;
+}
+
+.radar-timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1a6e7e;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.radar-timeline-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.radar-timeline-indicator {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a5568;
+  min-width: 42px;
+  text-align: right;
+}
+
 .nowcast-card-footer {
   font-size: 0.78rem;
   color: #718096;
