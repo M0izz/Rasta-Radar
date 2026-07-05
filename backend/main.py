@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from collections import defaultdict, deque
+import os
 
 import httpx
 from fastapi import FastAPI, HTTPException, Header
@@ -10,6 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image, ImageChops
+from google.cloud import bigquery
+from google.auth.exceptions import DefaultCredentialsError
 
 from risk_scoring import compute_risk_score, compute_leave_by
 from gemini_service import ask_gemini
@@ -144,6 +147,7 @@ async def update_radar_loop():
 async def startup_event():
     init_buffers()
     asyncio.create_task(update_radar_loop())
+    init_bigquery_tables()
 
 # Load static flood spots
 SPOTS_FILE = Path(__file__).parent / "flood_spots.json"
@@ -175,6 +179,267 @@ def save_community_counts(counts: dict[str, dict]):
         print(f"Error saving community reports: {e}")
 
 community_counts: dict[str, dict] = load_community_counts()
+
+# BigQuery Client Initialization
+bq_client = None
+try:
+    bq_client = bigquery.Client()
+    print("BigQuery client successfully initialized using application default credentials.")
+except DefaultCredentialsError as e:
+    print(f"Warning: BigQuery default credentials not found. Falling back to local storage. Error: {e}")
+except Exception as e:
+    print(f"Warning: Failed to initialize BigQuery client: {e}")
+
+def init_bigquery_tables():
+    global bq_client
+    if not bq_client:
+        return
+    
+    dataset_id = f"{bq_client.project}.rasta_radar"
+    dataset = bigquery.Dataset(dataset_id)
+    dataset.location = "US"
+    
+    try:
+        bq_client.get_dataset(dataset_id)
+        print(f"Dataset {dataset_id} already exists.")
+    except Exception:
+        try:
+            bq_client.create_dataset(dataset, timeout=30)
+            print(f"Created dataset {dataset_id}")
+        except Exception as e:
+            print(f"Failed to create dataset: {e}")
+            return
+
+    # Table 1: flood_spots
+    spots_table_id = f"{dataset_id}.flood_spots"
+    spots_schema = [
+        bigquery.SchemaField("id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("name", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("lat", "FLOAT", mode="REQUIRED"),
+        bigquery.SchemaField("lng", "FLOAT", mode="REQUIRED"),
+        bigquery.SchemaField("severity", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("description", "STRING", mode="NULLABLE"),
+        bigquery.SchemaField("ward", "STRING", mode="NULLABLE"),
+    ]
+    spots_table = bigquery.Table(spots_table_id, schema=spots_schema)
+    
+    table_created = False
+    try:
+        bq_client.get_table(spots_table_id)
+        print(f"Table {spots_table_id} already exists.")
+    except Exception:
+        try:
+            bq_client.create_table(spots_table, timeout=30)
+            print(f"Created table {spots_table_id}")
+            table_created = True
+        except Exception as e:
+            print(f"Failed to create table {spots_table_id}: {e}")
+
+    # Seed spots if newly created
+    if table_created:
+        try:
+            with open(SPOTS_FILE) as f:
+                spots_data = json.load(f)
+            
+            rows_to_insert = [
+                {
+                    "id": s["id"],
+                    "name": s["name"],
+                    "lat": s["lat"],
+                    "lng": s["lng"],
+                    "severity": s["historical_severity"],
+                    "description": s.get("description", ""),
+                    "ward": s.get("ward", "")
+                }
+                for s in spots_data
+            ]
+            
+            errors = bq_client.insert_rows_json(spots_table_id, rows_to_insert)
+            if not errors:
+                print(f"Seeded {len(rows_to_insert)} spots into BigQuery.")
+            else:
+                print(f"Errors seeding spots: {errors}")
+        except Exception as e:
+            print(f"Failed to seed spots table: {e}")
+
+    # Table 2: community_reports
+    reports_table_id = f"{dataset_id}.community_reports"
+    reports_schema = [
+        bigquery.SchemaField("spot_id", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("status", "STRING", mode="REQUIRED"),
+        bigquery.SchemaField("confirms", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("denies", "INTEGER", mode="REQUIRED"),
+        bigquery.SchemaField("last_updated", "TIMESTAMP", mode="REQUIRED"),
+    ]
+    reports_table = bigquery.Table(reports_table_id, schema=reports_schema)
+    
+    try:
+        bq_client.get_table(reports_table_id)
+        print(f"Table {reports_table_id} already exists.")
+    except Exception:
+        try:
+            bq_client.create_table(reports_table, timeout=30)
+            print(f"Created table {reports_table_id}")
+        except Exception as e:
+            print(f"Failed to create table {reports_table_id}: {e}")
+
+import time
+cached_spots = None
+last_spots_fetch_time = 0
+
+def db_get_spots():
+    global bq_client, cached_spots, last_spots_fetch_time
+    now = time.time()
+    if cached_spots and (now - last_spots_fetch_time < 10):
+        return cached_spots
+        
+    if not bq_client:
+        return get_local_spots()
+        
+    try:
+        query = f"""
+            SELECT s.id, s.name, s.lat, s.lng, s.severity as historical_severity, s.description, s.ward,
+                   r.status, COALESCE(r.confirms, 0) as confirms, COALESCE(r.denies, 0) as denies
+            FROM `{bq_client.project}.rasta_radar.flood_spots` s
+            LEFT JOIN `{bq_client.project}.rasta_radar.community_reports` r ON s.id = r.spot_id
+        """
+        query_job = bq_client.query(query)
+        rows = list(query_job.result())
+        
+        spots = []
+        for row in rows:
+            spots.append({
+                "id": row.id,
+                "name": row.name,
+                "lat": row.lat,
+                "lng": row.lng,
+                "historical_severity": row.historical_severity,
+                "description": row.description or "",
+                "ward": row.ward or "",
+                "community": {
+                    "confirms": row.confirms,
+                    "denies": row.denies
+                }
+            })
+        cached_spots = spots
+        last_spots_fetch_time = now
+        return spots
+    except Exception as e:
+        print(f"Error fetching from BigQuery, falling back to local: {e}")
+        return get_local_spots()
+
+def get_local_spots():
+    res = []
+    for s in FLOOD_SPOTS:
+        counts = community_counts[s["id"]]
+        res.append({
+            **s,
+            "historical_severity": s["historical_severity"],
+            "community": dict(counts)
+        })
+    return res
+
+def db_update_report(spot_id: str, is_confirm: bool):
+    global bq_client, cached_spots
+    cached_spots = None
+    
+    confirm_delta = 1 if is_confirm else 0
+    deny_delta = 0 if is_confirm else 1
+    status = "flooded" if is_confirm else "clear"
+    
+    if is_confirm:
+        community_counts[spot_id]["confirms"] += 1
+    else:
+        community_counts[spot_id]["denies"] += 1
+    save_community_counts(community_counts)
+    
+    if not bq_client:
+        return {
+            "confirms": community_counts[spot_id]["confirms"],
+            "denies": community_counts[spot_id]["denies"]
+        }
+        
+    try:
+        query = f"""
+            MERGE `{bq_client.project}.rasta_radar.community_reports` T
+            USING (SELECT '{spot_id}' as spot_id) S
+            ON T.spot_id = S.spot_id
+            WHEN MATCHED THEN
+              UPDATE SET T.confirms = T.confirms + {confirm_delta}, 
+                         T.denies = T.denies + {deny_delta}, 
+                         T.status = '{status}',
+                         T.last_updated = CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN
+              INSERT (spot_id, status, confirms, denies, last_updated)
+              VALUES ('{spot_id}', '{status}', {confirm_delta}, {deny_delta}, CURRENT_TIMESTAMP())
+        """
+        query_job = bq_client.query(query)
+        query_job.result()
+        
+        select_query = f"""
+            SELECT confirms, denies 
+            FROM `{bq_client.project}.rasta_radar.community_reports` 
+            WHERE spot_id = '{spot_id}'
+        """
+        select_job = bq_client.query(select_query)
+        rows = list(select_job.result())
+        if rows:
+            return {
+                "confirms": rows[0].confirms,
+                "denies": rows[0].denies
+            }
+    except Exception as e:
+        print(f"Error merging/updating BigQuery report: {e}")
+        
+    return {
+        "confirms": community_counts[spot_id]["confirms"],
+        "denies": community_counts[spot_id]["denies"]
+    }
+
+def db_get_community_alerts():
+    global bq_client
+    if not bq_client:
+        return get_local_community_alerts()
+        
+    try:
+        query = f"""
+            SELECT spot_id, status, confirms, denies
+            FROM `{bq_client.project}.rasta_radar.community_reports`
+            WHERE confirms > 0
+        """
+        query_job = bq_client.query(query)
+        rows = list(query_job.result())
+        
+        alerts = []
+        for row in rows:
+            spot = next((s for s in FLOOD_SPOTS if s["id"] == row.spot_id), None)
+            if spot:
+                alerts.append({
+                    "id": row.spot_id,
+                    "name": spot["name"],
+                    "area": spot["area"],
+                    "confirms": row.confirms,
+                    "denies": row.denies
+                })
+        return alerts
+    except Exception as e:
+        print(f"Error fetching community alerts from BigQuery: {e}")
+        return get_local_community_alerts()
+
+def get_local_community_alerts():
+    alerts = []
+    for spot_id, counts in community_counts.items():
+        if counts.get("confirms", 0) > 0:
+            spot = next((s for s in FLOOD_SPOTS if s["id"] == spot_id), None)
+            if spot:
+                alerts.append({
+                    "id": spot_id,
+                    "name": spot["name"],
+                    "area": spot["area"],
+                    "confirms": counts["confirms"],
+                    "denies": counts["denies"]
+                })
+    return alerts
 
 # Named routes: each maps to a list of spot IDs that route passes through.
 ROUTES = {
@@ -277,10 +542,10 @@ def score_all_spots(rainfall_data: dict, at_time: datetime) -> list[dict]:
     rainfall_3h = get_rainfall_3h(hourly, at_time) if hourly else 0.0
 
     scored = []
-    for spot in FLOOD_SPOTS:
+    spots_data = db_get_spots()
+    for spot in spots_data:
         risk = compute_risk_score(rainfall_3h, spot["historical_severity"], at_time)
         guidance = compute_leave_by(risk["score"], risk["level"], spot)
-        counts = community_counts[spot["id"]]
         scored.append(
             {
                 **spot,
@@ -288,7 +553,6 @@ def score_all_spots(rainfall_data: dict, at_time: datetime) -> list[dict]:
                 "risk_level": risk["level"],
                 "risk_components": risk["components"],
                 "leave_by": guidance,
-                "community": dict(counts),
                 "scored_at": at_time.isoformat(),
             }
         )
@@ -334,7 +598,8 @@ async def get_spots():
 @app.get("/spots/{spot_id}")
 async def get_spot(spot_id: str):
     """Return a single spot with current risk score."""
-    spot = next((s for s in FLOOD_SPOTS if s["id"] == spot_id), None)
+    spots_data = db_get_spots()
+    spot = next((s for s in spots_data if s["id"] == spot_id), None)
     if not spot:
         raise HTTPException(status_code=404, detail="Spot not found")
 
@@ -349,7 +614,6 @@ async def get_spot(spot_id: str):
 
     risk = compute_risk_score(rainfall_3h, spot["historical_severity"], now)
     guidance = compute_leave_by(risk["score"], risk["level"], spot)
-    counts = community_counts[spot_id]
 
     return {
         **spot,
@@ -357,7 +621,6 @@ async def get_spot(spot_id: str):
         "risk_level": risk["level"],
         "risk_components": risk["components"],
         "leave_by": guidance,
-        "community": dict(counts),
         "scored_at": now.isoformat(),
         "disclaimer": "Risk score = live rainfall + historical flood severity + tide timing. Not a calibrated prediction.",
     }
@@ -366,21 +629,21 @@ async def get_spot(spot_id: str):
 @app.post("/spots/{spot_id}/confirm")
 async def confirm_spot(spot_id: str):
     """Community: mark a spot as currently flooded."""
-    if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
+    spots_data = db_get_spots()
+    if not any(s["id"] == spot_id for s in spots_data):
         raise HTTPException(status_code=404, detail="Spot not found")
-    community_counts[spot_id]["confirms"] += 1
-    save_community_counts(community_counts)
-    return {"status": "ok", "community": dict(community_counts[spot_id])}
+    updated_counts = db_update_report(spot_id, is_confirm=True)
+    return {"status": "ok", "community": updated_counts}
 
 
 @app.post("/spots/{spot_id}/deny")
 async def deny_spot(spot_id: str):
     """Community: mark a spot as currently clear."""
-    if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
+    spots_data = db_get_spots()
+    if not any(s["id"] == spot_id for s in spots_data):
         raise HTTPException(status_code=404, detail="Spot not found")
-    community_counts[spot_id]["denies"] += 1
-    save_community_counts(community_counts)
-    return {"status": "ok", "community": dict(community_counts[spot_id])}
+    updated_counts = db_update_report(spot_id, is_confirm=False)
+    return {"status": "ok", "community": updated_counts}
 
 
 
@@ -804,18 +1067,7 @@ async def get_alerts():
     ]
     
     # Gather community-reported spots (confirms > 0)
-    community_alerts = []
-    for spot_id, counts in community_counts.items():
-        if counts.get("confirms", 0) > 0:
-            spot = next((s for s in FLOOD_SPOTS if s["id"] == spot_id), None)
-            if spot:
-                community_alerts.append({
-                    "id": spot_id,
-                    "name": spot["name"],
-                    "area": spot["area"],
-                    "confirms": counts["confirms"],
-                    "denies": counts["denies"]
-                })
+    community_alerts = db_get_community_alerts()
                 
     # Bulletins mock list from IMD, BMC and Traffic Police
     bulletins = [
