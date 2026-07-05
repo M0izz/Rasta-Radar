@@ -67,35 +67,6 @@ export default function ReportsAlerts() {
       </div>
 
       <div className="reports-grid">
-        {/* Bulletins Section */}
-        <div className="bulletins-col">
-          <div className="section-title-wrap">
-            <Megaphone size={18} className="text-teal" />
-            <h2 className="column-title">Official Bulletins</h2>
-          </div>
-          <div className="bulletin-list">
-            {data.bulletins?.map((b) => (
-              <div key={b.id} className={`bulletin-card ${b.type}`}>
-                <div className="bulletin-badge-row">
-                  <div className="bulletin-badge-left">
-                    {getBulletinIcon(b.type)}
-                    <span className="bulletin-badge-text">
-                      {b.type.toUpperCase().replace('_', ' ')}
-                    </span>
-                  </div>
-                  <span className="bulletin-time">
-                    <Clock size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                    {formatISTTime(b.timestamp)}
-                  </span>
-                </div>
-                <h3>{b.title}</h3>
-                <p className="bulletin-content">{b.content}</p>
-                <div className="bulletin-source">Issued by: {b.source}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Hotspots & User Reports Section */}
         <div className="feed-col">
           {/* Tabs header */}
@@ -181,6 +152,35 @@ export default function ReportsAlerts() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Bulletins Section */}
+        <div className="bulletins-col">
+          <div className="section-title-wrap">
+            <Megaphone size={18} className="text-teal" />
+            <h2 className="column-title">Official Bulletins</h2>
+          </div>
+          <div className="bulletin-list">
+            {data.bulletins?.map((b) => (
+              <div key={b.id} className={`bulletin-card ${b.type}`}>
+                <div className="bulletin-badge-row">
+                  <div className="bulletin-badge-left">
+                    {getBulletinIcon(b.type)}
+                    <span className="bulletin-badge-text">
+                      {b.type.toUpperCase().replace('_', ' ')}
+                    </span>
+                  </div>
+                  <span className="bulletin-time">
+                    <Clock size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                    {formatISTTime(b.timestamp)}
+                  </span>
+                </div>
+                <h3>{b.title}</h3>
+                <p className="bulletin-content">{b.content}</p>
+                <div className="bulletin-source">Issued by: {b.source}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

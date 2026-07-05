@@ -3090,7 +3090,7 @@ button {
 
 .reports-grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1.2fr 0.8fr;
   gap: 28px;
 }
 
@@ -3263,7 +3263,24 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 18px;
-  min-height: 400px;
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+/* Slim scrollbar styling for the tab content panel */
+.tab-content-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.tab-content-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.tab-content-panel::-webkit-scrollbar-thumb {
+  background: rgba(26, 110, 126, 0.35);
+  border-radius: 10px;
+}
+.tab-content-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 110, 126, 0.6);
 }
 
 .alerts-spot-list {
