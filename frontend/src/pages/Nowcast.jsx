@@ -99,21 +99,16 @@ export default function Nowcast() {
             </div>
             <div className="nowcast-card-info">
               <h2>Rainfall Nowcast</h2>
-              <p>Current rainfall intensity</p>
+              <p>Current rainfall intensity • {formatIST(rainfall?.timestamp)}</p>
             </div>
           </div>
           <div className="nowcast-image-container">
             {rainfall?.url ? (
-              <>
-                <img 
-                  src={rainfall.url} 
-                  alt="Rainfall Nowcast MMR" 
-                  className="radar-img" 
-                />
-                <div className="radar-time-badge glassmorphic">
-                  {formatIST(rainfall.timestamp)}
-                </div>
-              </>
+              <img 
+                src={rainfall.url} 
+                alt="Rainfall Nowcast MMR" 
+                className="radar-img" 
+              />
             ) : (
               <div className="empty-alert-state">
                 <AlertCircle size={16} />
@@ -123,7 +118,7 @@ export default function Nowcast() {
           </div>
 
           <div className="nowcast-card-footer">
-            <span>Telemetred timestamp: {formatIST(rainfall?.timestamp)}</span>
+            <span>Source: IIT Bombay Climate Studies Group</span>
           </div>
         </div>
 
@@ -135,7 +130,7 @@ export default function Nowcast() {
             </div>
             <div className="nowcast-card-info">
               <h2>Doppler Radar</h2>
-              <p>Current reflectivity index</p>
+              <p>Current reflectivity index • {formatIST(doppler?.timestamp)}</p>
             </div>
             <span className="live-pulse-badge">
               <span className="dot" />
@@ -144,16 +139,11 @@ export default function Nowcast() {
           </div>
           <div className="nowcast-image-container">
             {doppler?.url ? (
-              <>
-                <img 
-                  src={doppler.url} 
-                  alt="Doppler Radar MMR" 
-                  className="radar-img" 
-                />
-                <div className="radar-time-badge glassmorphic">
-                  {formatIST(doppler.timestamp)}
-                </div>
-              </>
+              <img 
+                src={doppler.url} 
+                alt="Doppler Radar MMR" 
+                className="radar-img" 
+              />
             ) : (
               <div className="empty-alert-state">
                 <AlertCircle size={16} />
@@ -163,7 +153,7 @@ export default function Nowcast() {
           </div>
 
           <div className="nowcast-card-footer">
-            <span>Telemetred timestamp: {formatIST(doppler?.timestamp)}</span>
+            <span>Source: India Meteorological Department (IMD)</span>
           </div>
         </div>
       </div>

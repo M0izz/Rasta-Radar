@@ -2146,24 +2146,6 @@ button {
   border-radius: 4px;
 }
 
-.radar-time-badge {
-  position: absolute;
-  top: 24px;
-  left: 24px;
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #2d3748;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-  pointer-events: none;
-  z-index: 10;
-}
-
 .nowcast-card-footer {
   font-size: 0.78rem;
   color: #718096;
