@@ -5,7 +5,7 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "main.py"
+      "entrypoint": "main:app"
     }
   },
   "rewrites": [
@@ -19,6 +19,7 @@
     { "source": "/sensors/(.*)", "destination": { "service": "backend" } },
     { "source": "/sensors", "destination": { "service": "backend" } },
     { "source": "/static/(.*)", "destination": { "service": "backend" } },
+    { "source": "/((?!api|spots|ask|forecast|routes|rainfall|sensors|static|assets|[^/]+\\.[^/]+$).*)", "destination": { "service": "frontend", "path": "/index.html" } },
     { "source": "/(.*)", "destination": { "service": "frontend" } }
   ]
 }
