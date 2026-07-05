@@ -2,6 +2,46 @@ import { useState, useRef, useEffect } from 'react'
 import { askQuestion } from '../api/floodData.js'
 import { Send, Bot, User, CornerDownLeft, Sparkles } from 'lucide-react'
 
+function renderMarkdown(text) {
+  if (!text) return ''
+  const lines = text.split('\n')
+  return lines.map((line, lineIdx) => {
+    let cleanLine = line.trim()
+    const isBullet = cleanLine.startsWith('•')
+    if (isBullet) {
+      cleanLine = cleanLine.substring(1).trim()
+    }
+    const boldParts = cleanLine.split('**')
+    const elements = boldParts.map((part, index) => {
+      const isBold = index % 2 === 1
+      const italicParts = part.split('*')
+      const subElements = italicParts.map((subPart, subIndex) => {
+        const isItalic = subIndex % 2 === 1
+        if (isItalic) {
+          return <em key={`${lineIdx}-${index}-${subIndex}`}>{subPart}</em>
+        }
+        return subPart
+      })
+      if (isBold) {
+        return <strong key={`${lineIdx}-${index}`}>{subElements}</strong>
+      }
+      return <span key={`${lineIdx}-${index}`}>{subElements}</span>
+    })
+    if (isBullet) {
+      return (
+        <li key={lineIdx} className="chat-bullet-item">
+          {elements}
+        </li>
+      )
+    }
+    return (
+      <div key={lineIdx} style={{ minHeight: '18px', marginBottom: lineIdx === lines.length - 1 ? '0' : '6px' }}>
+        {elements}
+      </div>
+    )
+  })
+}
+
 export default function AIAssistant() {
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([
@@ -87,7 +127,7 @@ export default function AIAssistant() {
                 {msg.sender === 'bot' ? <Bot size={14} /> : <User size={14} />}
               </div>
               <div className="chat-bubble">
-                <p className="bubble-text">{msg.text}</p>
+                <div className="bubble-text">{renderMarkdown(msg.text)}</div>
               </div>
             </div>
           ))}

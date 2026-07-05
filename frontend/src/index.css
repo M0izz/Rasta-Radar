@@ -2947,6 +2947,14 @@ button {
   border-radius: 12px;
   font-size: 0.88rem;
   line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.chat-bullet-item {
+  margin-left: 18px;
+  list-style-type: disc;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 .chat-bubble-wrap.user .chat-bubble {
