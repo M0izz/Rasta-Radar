@@ -435,9 +435,9 @@ button {
 
 /* ---- Spot Detail Page ---- */
 .detail-page {
-  max-width: 860px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 24px 20px;
+  padding: 32px 20px;
 }
 
 .detail-back {
@@ -583,35 +583,35 @@ button {
 .community-widget {
   background: #fff;
   border: 1px solid #e0ddd8;
-  padding: 14px;
+  padding: 24px;
   margin-bottom: 16px;
 }
 
 .community-widget h3 {
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: #888;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .community-widget p {
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   color: #888;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .community-btns {
   display: flex;
-  gap: 10px;
+  gap: 12px;
 }
 
 .community-btn {
-  padding: 8px 18px;
+  padding: 10px 24px;
   border: 1px solid;
-  border-radius: 3px;
-  font-size: 0.82rem;
-  font-weight: 500;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
   background: #fff;
   transition: background 0.15s;
 }
@@ -1469,8 +1469,8 @@ button {
 /* Detail page split layout */
 .detail-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 20px;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
   align-items: start;
   margin-top: 16px;
   margin-bottom: 20px;
@@ -1480,7 +1480,7 @@ button {
   background: #fff;
   border: 1px solid #d8d5d0;
   border-radius: 4px;
-  padding: 20px;
+  padding: 32px 28px;
 }
 
 .detail-sidebar-col {
