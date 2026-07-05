@@ -5,7 +5,6 @@ import { ChevronLeft, MapPin, Share2 } from 'lucide-react'
 
 export default function SpotDetail() {
   const { spotId } = useParams()
-  const isAuthenticated = !!localStorage.getItem('rasta_auth_token')
   const [spot, setSpot] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -170,28 +169,22 @@ export default function SpotDetail() {
           <div className="community-widget detail-sidebar-widget" style={{ marginBottom: 0 }}>
             <h3>Community check</h3>
             <p>Have you passed through here recently? Help others by reporting conditions.</p>
-            {!isAuthenticated ? (
-              <div className="auth-voting-notice">
-                <span>Please <Link to="/auth">Sign In</Link> to report waterlogging.</span>
-              </div>
-            ) : (
-              <div className="community-btns">
-                <button
-                  className="community-btn confirm"
-                  onClick={handleConfirm}
-                  disabled={voting}
-                >
-                  Still flooded
-                </button>
-                <button
-                  className="community-btn deny"
-                  onClick={handleDeny}
-                  disabled={voting}
-                >
-                  Clear now
-                </button>
-              </div>
-            )}
+            <div className="community-btns">
+              <button
+                className="community-btn confirm"
+                onClick={handleConfirm}
+                disabled={voting}
+              >
+                Still flooded
+              </button>
+              <button
+                className="community-btn deny"
+                onClick={handleDeny}
+                disabled={voting}
+              >
+                Clear now
+              </button>
+            </div>
             <div className="community-counts">
               <div className="community-count-item">
                 <span>{spot.community?.confirms ?? 0}</span> reported flooded

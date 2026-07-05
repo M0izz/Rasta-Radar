@@ -13,24 +13,16 @@ export async function fetchSpot(spotId) {
 }
 
 export async function confirmSpot(spotId) {
-  const token = localStorage.getItem('rasta_auth_token')
   const res = await fetch(`${BASE}/spots/${spotId}/confirm`, {
-    method: 'POST',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
-    }
+    method: 'POST'
   })
   if (!res.ok) throw new Error('Failed to confirm')
   return res.json()
 }
 
 export async function denySpot(spotId) {
-  const token = localStorage.getItem('rasta_auth_token')
   const res = await fetch(`${BASE}/spots/${spotId}/deny`, {
-    method: 'POST',
-    headers: {
-      'Authorization': token ? `Bearer ${token}` : ''
-    }
+    method: 'POST'
   })
   if (!res.ok) throw new Error('Failed to deny')
   return res.json()

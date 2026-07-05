@@ -122,19 +122,6 @@ export default function Nowcast() {
             )}
           </div>
 
-          {/* Color Metrics Legend */}
-          <div className="radar-legend-wrap">
-            <div className="legend-title">Rain Rate (mm/h)</div>
-            <div className="legend-bar">
-              <div className="legend-segment" style={{ background: '#e2e8f0', color: '#4a5568' }}><span>No Rain</span></div>
-              <div className="legend-segment" style={{ background: '#48bb78', color: '#ffffff' }}><span>0.5 - 2</span></div>
-              <div className="legend-segment" style={{ background: '#ecc94b', color: '#2d3748' }}><span>2 - 10</span></div>
-              <div className="legend-segment" style={{ background: '#f6e05e', color: '#2d3748' }}><span>10 - 30</span></div>
-              <div className="legend-segment" style={{ background: '#e53e3e', color: '#ffffff' }}><span>30 - 50</span></div>
-              <div className="legend-segment" style={{ background: '#b83280', color: '#ffffff' }}><span>&gt; 50</span></div>
-            </div>
-          </div>
-
           <div className="nowcast-card-footer">
             <span>Telemetred timestamp: {formatIST(rainfall?.timestamp)}</span>
           </div>
@@ -173,18 +160,6 @@ export default function Nowcast() {
                 <span>No Doppler image available.</span>
               </div>
             )}
-          </div>
-
-          {/* Color Metrics Legend */}
-          <div className="radar-legend-wrap">
-            <div className="legend-title">Doppler Reflectivity (dBZ)</div>
-            <div className="legend-bar">
-              <div className="legend-segment" style={{ background: '#ebf8ff', color: '#2b6cb0' }}><span>0 - 15</span></div>
-              <div className="legend-segment" style={{ background: '#4299e1', color: '#ffffff' }}><span>15 - 30</span></div>
-              <div className="legend-segment" style={{ background: '#3182ce', color: '#ffffff' }}><span>30 - 45</span></div>
-              <div className="legend-segment" style={{ background: '#2b6cb0', color: '#ffffff' }}><span>45 - 60</span></div>
-              <div className="legend-segment" style={{ background: '#e53e3e', color: '#ffffff' }}><span>&gt; 60</span></div>
-            </div>
           </div>
 
           <div className="nowcast-card-footer">

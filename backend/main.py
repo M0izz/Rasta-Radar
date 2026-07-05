@@ -426,10 +426,8 @@ async def get_spot(spot_id: str):
 
 
 @app.post("/spots/{spot_id}/confirm")
-async def confirm_spot(spot_id: str, authorization: str = Header(None)):
+async def confirm_spot(spot_id: str):
     """Community: mark a spot as currently flooded."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized: Firebase Token missing")
     if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
         raise HTTPException(status_code=404, detail="Spot not found")
     community_counts[spot_id]["confirms"] += 1
@@ -438,10 +436,8 @@ async def confirm_spot(spot_id: str, authorization: str = Header(None)):
 
 
 @app.post("/spots/{spot_id}/deny")
-async def deny_spot(spot_id: str, authorization: str = Header(None)):
+async def deny_spot(spot_id: str):
     """Community: mark a spot as currently clear."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Unauthorized: Firebase Token missing")
     if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
         raise HTTPException(status_code=404, detail="Spot not found")
     community_counts[spot_id]["denies"] += 1
