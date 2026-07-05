@@ -9,16 +9,16 @@
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/backend/api/$1" },
-    { "source": "/spots/(.*)", "destination": "/backend/spots/$1" },
-    { "source": "/spots", "destination": "/backend/spots" },
-    { "source": "/ask", "destination": "/backend/ask" },
-    { "source": "/forecast", "destination": "/backend/forecast" },
-    { "source": "/routes", "destination": "/backend/routes" },
-    { "source": "/rainfall/(.*)", "destination": "/backend/rainfall/$1" },
-    { "source": "/sensors/(.*)", "destination": "/backend/sensors/$1" },
-    { "source": "/sensors", "destination": "/backend/sensors" },
-    { "source": "/static/(.*)", "destination": "/backend/static/$1" },
-    { "source": "/(.*)", "destination": "/frontend/$1" }
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/spots/(.*)", "destination": { "service": "backend" } },
+    { "source": "/spots", "destination": { "service": "backend" } },
+    { "source": "/ask", "destination": { "service": "backend" } },
+    { "source": "/forecast", "destination": { "service": "backend" } },
+    { "source": "/routes", "destination": { "service": "backend" } },
+    { "source": "/rainfall/(.*)", "destination": { "service": "backend" } },
+    { "source": "/sensors/(.*)", "destination": { "service": "backend" } },
+    { "source": "/sensors", "destination": { "service": "backend" } },
+    { "source": "/static/(.*)", "destination": { "service": "backend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
   ]
 }
