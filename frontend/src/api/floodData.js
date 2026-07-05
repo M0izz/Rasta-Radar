@@ -13,16 +13,35 @@ export async function fetchSpot(spotId) {
 }
 
 export async function confirmSpot(spotId) {
-  const res = await fetch(`${BASE}/spots/${spotId}/confirm`, { method: 'POST' })
+  const token = localStorage.getItem('rasta_auth_token')
+  const res = await fetch(`${BASE}/spots/${spotId}/confirm`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : ''
+    }
+  })
   if (!res.ok) throw new Error('Failed to confirm')
   return res.json()
 }
 
 export async function denySpot(spotId) {
-  const res = await fetch(`${BASE}/spots/${spotId}/deny`, { method: 'POST' })
+  const token = localStorage.getItem('rasta_auth_token')
+  const res = await fetch(`${BASE}/spots/${spotId}/deny`, {
+    method: 'POST',
+    headers: {
+      'Authorization': token ? `Bearer ${token}` : ''
+    }
+  })
   if (!res.ok) throw new Error('Failed to deny')
   return res.json()
 }
+
+export async function fetchAlerts() {
+  const res = await fetch(`${BASE}/api/alerts`)
+  if (!res.ok) throw new Error('Failed to fetch alerts')
+  return res.json()
+}
+
 
 export async function fetchForecast(hourOffset) {
   const res = await fetch(`${BASE}/forecast?hour_offset=${hourOffset}`)

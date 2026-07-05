@@ -5,7 +5,7 @@ from pathlib import Path
 from collections import defaultdict, deque
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -426,8 +426,10 @@ async def get_spot(spot_id: str):
 
 
 @app.post("/spots/{spot_id}/confirm")
-async def confirm_spot(spot_id: str):
+async def confirm_spot(spot_id: str, authorization: str = Header(None)):
     """Community: mark a spot as currently flooded."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized: Firebase Token missing")
     if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
         raise HTTPException(status_code=404, detail="Spot not found")
     community_counts[spot_id]["confirms"] += 1
@@ -436,13 +438,16 @@ async def confirm_spot(spot_id: str):
 
 
 @app.post("/spots/{spot_id}/deny")
-async def deny_spot(spot_id: str):
+async def deny_spot(spot_id: str, authorization: str = Header(None)):
     """Community: mark a spot as currently clear."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized: Firebase Token missing")
     if not any(s["id"] == spot_id for s in FLOOD_SPOTS):
         raise HTTPException(status_code=404, detail="Spot not found")
     community_counts[spot_id]["denies"] += 1
     save_community_counts(community_counts)
     return {"status": "ok", "community": dict(community_counts[spot_id])}
+
 
 
 @app.get("/forecast")
@@ -829,4 +834,76 @@ async def get_sensor_history(sensor_id: str):
     if not sensor:
         raise HTTPException(status_code=404, detail="Sensor not found")
     return {"history": sensor["history"]}
+
+
+@app.get("/api/alerts")
+async def get_alerts():
+    try:
+        rainfall_data = await fetch_rainfall_data()
+    except Exception:
+        rainfall_data = {}
+    now = datetime.now(timezone.utc)
+    spots = score_all_spots(rainfall_data, now)
+    
+    # Filter active warnings (risk level high or moderate)
+    hotspots = [
+        {
+            "id": s["id"],
+            "name": s["name"],
+            "area": s["area"],
+            "risk_score": s["risk_score"],
+            "risk_level": s["risk_level"],
+            "leave_by": s["leave_by"]
+        } for s in spots if s["risk_level"] in ("high", "moderate")
+    ]
+    
+    # Gather community-reported spots (confirms > 0)
+    community_alerts = []
+    for spot_id, counts in community_counts.items():
+        if counts.get("confirms", 0) > 0:
+            spot = next((s for s in FLOOD_SPOTS if s["id"] == spot_id), None)
+            if spot:
+                community_alerts.append({
+                    "id": spot_id,
+                    "name": spot["name"],
+                    "area": spot["area"],
+                    "confirms": counts["confirms"],
+                    "denies": counts["denies"]
+                })
+                
+    # Bulletins mock list from IMD, BMC and Traffic Police
+    bulletins = [
+        {
+            "id": "b1",
+            "source": "IMD Regional Meteorological Centre, Mumbai",
+            "type": "red_alert",
+            "title": "Red Alert: Extremely Heavy Rainfall Warning",
+            "content": "Very heavy to extremely heavy rainfall (above 204.4 mm) is expected at isolated places in Mumbai, Thane, and Palghar regions over the next 24 hours. Commuters are advised to restrict travel unless absolutely necessary.",
+            "timestamp": now.isoformat()
+        },
+        {
+            "id": "b2",
+            "source": "BMC Disaster Management Cell",
+            "type": "tide_warning",
+            "title": "High Tide Advisory (4.45m)",
+            "content": "A high tide of 4.45 meters is expected today at 3:45 PM IST. Heavy rainfall coinciding with high tide increases flooding risks in low-lying zones including Hindmata, Sion, and Milan Subway.",
+            "timestamp": (now - timedelta(hours=1)).isoformat()
+        },
+        {
+            "id": "b3",
+            "source": "Mumbai Traffic Police Cell",
+            "type": "traffic_warning",
+            "title": "Traffic Diversions near Andheri Subway",
+            "content": "Waterlogging up to 2 feet reported at Andheri Subway. Traffic is temporarily suspended and diverted to SV Road. Expect delays on Western Express Highway southbound lane.",
+            "timestamp": (now - timedelta(hours=2)).isoformat()
+        }
+    ]
+    
+    return {
+        "bulletins": bulletins,
+        "hotspots": hotspots,
+        "community_alerts": community_alerts,
+        "generated_at": now.isoformat()
+    }
+
 
