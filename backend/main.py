@@ -87,65 +87,43 @@ def init_buffers():
     base_nowcast = FRONTEND_PUBLIC / "radar_nowcast.png"
     base_doppler = FRONTEND_PUBLIC / "doppler_radar.png"
     
-    # Pre-generate 10 frames for nowcast
+    # Pre-generate only 1 frame for nowcast
     if base_nowcast.exists():
         try:
-            NOWCAST_BG, NOWCAST_OVERLAY = extract_layers(base_nowcast, (38, 38, 38))
-            for i in range(10):
-                dx = i * 8
-                dy = -i * 5
-                shifted = ImageChops.offset(NOWCAST_OVERLAY, dx, dy)
-                composite = NOWCAST_BG.copy()
-                composite.paste(shifted, (0, 0), shifted)
-                
-                filename = f"radar_nowcast_{i}.png"
-                composite.save(RADAR_DIR / filename)
-                
-                offset_mins = 6 + (9 - i) * 10
-                dt = now_ist - timedelta(minutes=offset_mins)
-                
-                rainfall_buffer.append({
-                    "url": f"http://localhost:8000/static/radar/{filename}",
-                    "timestamp": dt.isoformat(),
-                    "filename": filename
-                })
+            filename = "radar_nowcast_0.png"
+            base_nowcast_img = Image.open(base_nowcast)
+            base_nowcast_img.save(RADAR_DIR / filename)
+            
+            dt = now_ist - timedelta(minutes=6)
+            rainfall_buffer.append({
+                "url": f"http://localhost:8000/static/radar/{filename}",
+                "timestamp": dt.isoformat(),
+                "filename": filename
+            })
         except Exception as e:
             print(f"Error pre-generating nowcast: {e}")
             
-    # Pre-generate 10 frames for doppler
+    # Pre-generate only 1 frame for doppler
     if base_doppler.exists():
         try:
-            DOPPLER_BG, DOPPLER_OVERLAY = extract_layers(base_doppler, (35, 40, 46))
-            for i in range(10):
-                dx = i * 12
-                dy = -i * 7
-                shifted = ImageChops.offset(DOPPLER_OVERLAY, dx, dy)
-                composite = DOPPLER_BG.copy()
-                composite.paste(shifted, (0, 0), shifted)
-                
-                filename = f"doppler_radar_{i}.png"
-                composite.save(DOPPLER_DIR / filename)
-                
-                offset_mins = 4 + (9 - i) * 10
-                dt = now_ist - timedelta(minutes=offset_mins)
-                
-                doppler_buffer.append({
-                    "url": f"http://localhost:8000/static/doppler/{filename}",
-                    "timestamp": dt.isoformat(),
-                    "filename": filename
-                })
+            filename = "doppler_radar_0.png"
+            base_doppler_img = Image.open(base_doppler)
+            base_doppler_img.save(DOPPLER_DIR / filename)
+            
+            dt = now_ist - timedelta(minutes=4)
+            doppler_buffer.append({
+                "url": f"http://localhost:8000/static/doppler/{filename}",
+                "timestamp": dt.isoformat(),
+                "filename": filename
+            })
         except Exception as e:
             print(f"Error pre-generating doppler: {e}")
 
 # Global counters for simulation
-rainfall_counter = 10
-doppler_counter = 10
+rainfall_counter = 1
+doppler_counter = 1
 
 async def update_radar_loop():
-    global rainfall_counter, doppler_counter, NOWCAST_BG, NOWCAST_OVERLAY, DOPPLER_BG, DOPPLER_OVERLAY
-    base_nowcast = FRONTEND_PUBLIC / "radar_nowcast.png"
-    base_doppler = FRONTEND_PUBLIC / "doppler_radar.png"
-    
     while True:
         # Check every 10 minutes (600 seconds)
         await asyncio.sleep(600)
@@ -154,53 +132,13 @@ async def update_radar_loop():
         ist_tz = timezone(timedelta(hours=5, minutes=30))
         now_ist = now.astimezone(ist_tz)
         
-        if base_nowcast.exists():
-            try:
-                if NOWCAST_BG is None or NOWCAST_OVERLAY is None:
-                    NOWCAST_BG, NOWCAST_OVERLAY = extract_layers(base_nowcast, (38, 38, 38))
-                
-                dx = rainfall_counter * 8
-                dy = -rainfall_counter * 5
-                shifted = ImageChops.offset(NOWCAST_OVERLAY, dx, dy)
-                composite = NOWCAST_BG.copy()
-                composite.paste(shifted, (0, 0), shifted)
-                
-                filename = f"radar_nowcast_{rainfall_counter % 10}.png"
-                composite.save(RADAR_DIR / filename)
-                
-                dt = now_ist - timedelta(minutes=6)
-                rainfall_buffer.append({
-                    "url": f"http://localhost:8000/static/radar/{filename}",
-                    "timestamp": dt.isoformat(),
-                    "filename": filename
-                })
-                rainfall_counter += 1
-            except Exception as e:
-                print(f"Error updating nowcast frame: {e}")
-                
-        if base_doppler.exists():
-            try:
-                if DOPPLER_BG is None or DOPPLER_OVERLAY is None:
-                    DOPPLER_BG, DOPPLER_OVERLAY = extract_layers(base_doppler, (35, 40, 46))
-                
-                dx = doppler_counter * 12
-                dy = -doppler_counter * 7
-                shifted = ImageChops.offset(DOPPLER_OVERLAY, dx, dy)
-                composite = DOPPLER_BG.copy()
-                composite.paste(shifted, (0, 0), shifted)
-                
-                filename = f"doppler_radar_{doppler_counter % 10}.png"
-                composite.save(DOPPLER_DIR / filename)
-                
-                dt = now_ist - timedelta(minutes=4)
-                doppler_buffer.append({
-                    "url": f"http://localhost:8000/static/doppler/{filename}",
-                    "timestamp": dt.isoformat(),
-                    "filename": filename
-                })
-                doppler_counter += 1
-            except Exception as e:
-                print(f"Error updating doppler frame: {e}")
+        if len(rainfall_buffer) > 0:
+            item = rainfall_buffer[-1]
+            item["timestamp"] = (now_ist - timedelta(minutes=6)).isoformat()
+            
+        if len(doppler_buffer) > 0:
+            item = doppler_buffer[-1]
+            item["timestamp"] = (now_ist - timedelta(minutes=4)).isoformat()
 
 @app.on_event("startup")
 async def startup_event():
