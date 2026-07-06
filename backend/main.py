@@ -11,8 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from PIL import Image, ImageChops
-from google.cloud import bigquery
-from google.auth.exceptions import DefaultCredentialsError
 
 from risk_scoring import compute_risk_score, compute_leave_by
 from gemini_service import ask_gemini
@@ -182,29 +180,38 @@ community_counts: dict[str, dict] = load_community_counts()
 
 # BigQuery Client Initialization
 bq_client = None
-try:
-    bq_client = bigquery.Client()
-    print("BigQuery client successfully initialized using application default credentials.")
-except DefaultCredentialsError as e:
-    print(f"Warning: BigQuery default credentials not found. Falling back to local storage. Error: {e}")
-except Exception as e:
-    print(f"Warning: Failed to initialize BigQuery client: {e}")
+bq_client_attempted = False
+
+def get_bq_client():
+    global bq_client, bq_client_attempted
+    if bq_client_attempted:
+        return bq_client
+    bq_client_attempted = True
+    try:
+        from google.cloud import bigquery
+        bq_client = bigquery.Client()
+        print("BigQuery client successfully initialized using application default credentials.")
+    except Exception as e:
+        print(f"Warning: Failed to initialize BigQuery client: {e}")
+        bq_client = None
+    return bq_client
 
 def init_bigquery_tables():
-    global bq_client
-    if not bq_client:
+    client = get_bq_client()
+    if not client:
         return
     
-    dataset_id = f"{bq_client.project}.rasta_radar"
+    from google.cloud import bigquery
+    dataset_id = f"{client.project}.rasta_radar"
     dataset = bigquery.Dataset(dataset_id)
     dataset.location = "US"
     
     try:
-        bq_client.get_dataset(dataset_id)
+        client.get_dataset(dataset_id)
         print(f"Dataset {dataset_id} already exists.")
     except Exception:
         try:
-            bq_client.create_dataset(dataset, timeout=30)
+            client.create_dataset(dataset, timeout=30)
             print(f"Created dataset {dataset_id}")
         except Exception as e:
             print(f"Failed to create dataset: {e}")
@@ -225,11 +232,11 @@ def init_bigquery_tables():
     
     table_created = False
     try:
-        bq_client.get_table(spots_table_id)
+        client.get_table(spots_table_id)
         print(f"Table {spots_table_id} already exists.")
     except Exception:
         try:
-            bq_client.create_table(spots_table, timeout=30)
+            client.create_table(spots_table, timeout=30)
             print(f"Created table {spots_table_id}")
             table_created = True
         except Exception as e:
@@ -254,7 +261,7 @@ def init_bigquery_tables():
                 for s in spots_data
             ]
             
-            errors = bq_client.insert_rows_json(spots_table_id, rows_to_insert)
+            errors = client.insert_rows_json(spots_table_id, rows_to_insert)
             if not errors:
                 print(f"Seeded {len(rows_to_insert)} spots into BigQuery.")
             else:
@@ -274,11 +281,11 @@ def init_bigquery_tables():
     reports_table = bigquery.Table(reports_table_id, schema=reports_schema)
     
     try:
-        bq_client.get_table(reports_table_id)
+        client.get_table(reports_table_id)
         print(f"Table {reports_table_id} already exists.")
     except Exception:
         try:
-            bq_client.create_table(reports_table, timeout=30)
+            client.create_table(reports_table, timeout=30)
             print(f"Created table {reports_table_id}")
         except Exception as e:
             print(f"Failed to create table {reports_table_id}: {e}")
@@ -288,22 +295,23 @@ cached_spots = None
 last_spots_fetch_time = 0
 
 def db_get_spots():
-    global bq_client, cached_spots, last_spots_fetch_time
+    global cached_spots, last_spots_fetch_time
     now = time.time()
     if cached_spots and (now - last_spots_fetch_time < 10):
         return cached_spots
         
-    if not bq_client:
+    client = get_bq_client()
+    if not client:
         return get_local_spots()
         
     try:
         query = f"""
             SELECT s.id, s.name, s.lat, s.lng, s.severity as historical_severity, s.description, s.ward,
                    r.status, COALESCE(r.confirms, 0) as confirms, COALESCE(r.denies, 0) as denies
-            FROM `{bq_client.project}.rasta_radar.flood_spots` s
-            LEFT JOIN `{bq_client.project}.rasta_radar.community_reports` r ON s.id = r.spot_id
+            FROM `{client.project}.rasta_radar.flood_spots` s
+            LEFT JOIN `{client.project}.rasta_radar.community_reports` r ON s.id = r.spot_id
         """
-        query_job = bq_client.query(query)
+        query_job = client.query(query)
         rows = list(query_job.result())
         
         spots = []
@@ -340,7 +348,7 @@ def get_local_spots():
     return res
 
 def db_update_report(spot_id: str, is_confirm: bool):
-    global bq_client, cached_spots
+    global cached_spots
     cached_spots = None
     
     confirm_delta = 1 if is_confirm else 0
@@ -353,7 +361,8 @@ def db_update_report(spot_id: str, is_confirm: bool):
         community_counts[spot_id]["denies"] += 1
     save_community_counts(community_counts)
     
-    if not bq_client:
+    client = get_bq_client()
+    if not client:
         return {
             "confirms": community_counts[spot_id]["confirms"],
             "denies": community_counts[spot_id]["denies"]
@@ -361,7 +370,7 @@ def db_update_report(spot_id: str, is_confirm: bool):
         
     try:
         query = f"""
-            MERGE `{bq_client.project}.rasta_radar.community_reports` T
+            MERGE `{client.project}.rasta_radar.community_reports` T
             USING (SELECT '{spot_id}' as spot_id) S
             ON T.spot_id = S.spot_id
             WHEN MATCHED THEN
@@ -373,15 +382,15 @@ def db_update_report(spot_id: str, is_confirm: bool):
               INSERT (spot_id, status, confirms, denies, last_updated)
               VALUES ('{spot_id}', '{status}', {confirm_delta}, {deny_delta}, CURRENT_TIMESTAMP())
         """
-        query_job = bq_client.query(query)
+        query_job = client.query(query)
         query_job.result()
         
         select_query = f"""
             SELECT confirms, denies 
-            FROM `{bq_client.project}.rasta_radar.community_reports` 
+            FROM `{client.project}.rasta_radar.community_reports` 
             WHERE spot_id = '{spot_id}'
         """
-        select_job = bq_client.query(select_query)
+        select_job = client.query(select_query)
         rows = list(select_job.result())
         if rows:
             return {
@@ -397,17 +406,17 @@ def db_update_report(spot_id: str, is_confirm: bool):
     }
 
 def db_get_community_alerts():
-    global bq_client
-    if not bq_client:
+    client = get_bq_client()
+    if not client:
         return get_local_community_alerts()
         
     try:
         query = f"""
             SELECT spot_id, status, confirms, denies
-            FROM `{bq_client.project}.rasta_radar.community_reports`
+            FROM `{client.project}.rasta_radar.community_reports`
             WHERE confirms > 0
         """
-        query_job = bq_client.query(query)
+        query_job = client.query(query)
         rows = list(query_job.result())
         
         alerts = []
