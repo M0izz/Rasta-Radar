@@ -4,6 +4,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from collections import defaultdict, deque
 import os
+import sys
+sys.path.append(str(Path(__file__).parent))
 
 import httpx
 from fastapi import FastAPI, HTTPException, Header
