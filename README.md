@@ -58,9 +58,10 @@ Rasta Radar closes that gap — combining live rainfall data, a curated database
 | **Frontend** | React + Vite | Fast, component-based UI |
 | **Mapping** | Leaflet.js | Interactive risk map rendering |
 | **Backend** | FastAPI (Python) | Risk scoring engine, REST API |
+| **Database** | Google Cloud BigQuery | Persistent storage for community reports & flood logs |
 | **Weather Data** | Open-Meteo API | Live + forecast rainfall for Mumbai |
 | **AI** | Gemini API | Grounded natural-language ask bar |
-| **Hosting** | Vercel | Frontend deployment |
+| **Hosting** | Vercel | Unified frontend & backend deployment |
 
 ---
 
@@ -76,7 +77,7 @@ graph TD
     Spots["flood_spots.json<br/>(35 known spots)"]
     Tide["Tide Schedule<br/>(approximated)"]
     Gemini["Gemini API<br/>(NL ask bar)"]
-    Vote["Community Confirm/Deny<br/>(in-memory store)"]
+    BigQuery["Google Cloud Platform<br/>(BigQuery DB for Community Reports)"]
 
     Client -->|Interacts with| UI
     UI -->|REST/JSON| API
@@ -85,8 +86,7 @@ graph TD
     Risk --> Spots
     Risk --> Tide
     API --> Gemini
-    UI --> Vote
-    Vote -.->|feeds back into| Spots
+    API -->|Read/Write Reports| BigQuery
 
     classDef ui fill:#1C7293,stroke:#fff,stroke-width:2px,color:#fff;
     classDef server fill:#5C7080,stroke:#fff,stroke-width:2px,color:#fff;
@@ -94,7 +94,7 @@ graph TD
 
     class UI ui;
     class API,Risk server;
-    class Meteo,Spots,Tide,Gemini,Vote data;
+    class Meteo,Spots,Tide,Gemini,BigQuery data;
 ```
 
 ---
@@ -120,6 +120,7 @@ risk_score = (rainfall_last_3h_mm × 0.6)
 - [Python](https://www.python.org/) 3.9+
 - [Node.js](https://nodejs.org/) 18+
 - A [Gemini API key](https://ai.google.dev/) (optional — enables the ask bar)
+- GCP Credentials (optional — enables BigQuery community report persistence)
 
 ### Backend
 
@@ -129,9 +130,9 @@ cd Rasta-Radar/backend
 
 pip install -r requirements.txt
 
-# Optional: enables the Gemini-powered ask bar
+# Optional: enables BigQuery persistence & Gemini ask bar
 copy .env.example .env
-# then edit .env and add your GEMINI_API_KEY
+# then edit .env and add your keys
 ```
 
 ```bash
@@ -179,12 +180,11 @@ Being upfront about what this is — and isn't — matters more to us than looki
 
 - **Not a calibrated prediction model.** The risk score is a transparent heuristic, not trained against historical flood outcomes.
 - **Tide schedule is approximated** from a reference date and a fixed ~12h25m period — not synced with official IMD tide tables.
-- **Community confirm/deny counts are in-memory** and reset when the backend restarts.
 - **Route comparison uses labeled associations** (which known spots a route passes near), not real turn-by-turn routing.
 
 ## 🗺️ Roadmap
 
-- [ ] Persistent storage for community confirm/deny votes
+- [x] Persistent storage for community confirm/deny votes (integrated with GCP BigQuery)
 - [ ] Real turn-by-turn routing (OSRM / Google Directions)
 - [ ] Sync tide schedule with official IMD data
 - [ ] Calibrate the risk model against historical flood outcomes as ground-truth data becomes available
