@@ -19,7 +19,8 @@
     { "source": "/sensors", "destination": { "service": "backend", "path": "/sensors" } },
     { "source": "/sensors/(.*)", "destination": { "service": "backend", "path": "/sensors/$1" } },
     { "source": "/static/(.*)", "destination": { "service": "backend", "path": "/static/$1" } },
-    { "source": "/((?!api|spots|ask|forecast|routes|rainfall|sensors|static|assets|[^/]+\\.[^/]+$).*)", "destination": { "service": "frontend", "path": "/index.html" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
+    { "source": "/assets/(.*)", "destination": { "service": "frontend", "path": "/assets/$1" } },
+    { "source": "/([^/]+\\.[^/]+)", "destination": { "service": "frontend", "path": "/$1" } },
+    { "source": "/(.*)", "destination": { "service": "frontend", "path": "/index.html" } }
   ]
 }
