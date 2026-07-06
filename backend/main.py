@@ -148,10 +148,17 @@ async def startup_event():
     init_buffers()
     asyncio.create_task(update_radar_loop())
 
+startup_error = None
+
 # Load static flood spots
+FLOOD_SPOTS: list[dict] = []
 SPOTS_FILE = Path(__file__).parent / "flood_spots.json"
-with open(SPOTS_FILE) as f:
-    FLOOD_SPOTS: list[dict] = json.load(f)
+try:
+    with open(SPOTS_FILE) as f:
+        FLOOD_SPOTS = json.load(f)
+except Exception as e:
+    import traceback
+    startup_error = f"Error loading flood_spots.json: {str(e)}\n{traceback.format_exc()}"
 
 # Persistent community confirm/deny counts using a JSON file.
 REPORTS_FILE = Path(__file__).parent / "community_reports.json"
@@ -177,7 +184,13 @@ def save_community_counts(counts: dict[str, dict]):
     except Exception as e:
         print(f"Error saving community reports: {e}")
 
-community_counts: dict[str, dict] = load_community_counts()
+community_counts: dict[str, dict] = defaultdict(lambda: {"confirms": 0, "denies": 0})
+try:
+    community_counts = load_community_counts()
+except Exception as e:
+    import traceback
+    if not startup_error:
+        startup_error = f"Error loading community_counts: {str(e)}\n{traceback.format_exc()}"
 
 # BigQuery Client Initialization
 bq_client = None
@@ -697,6 +710,7 @@ async def get_debug_info():
     return {
         "python_version": sys.version,
         "env": safe_env,
+        "startup_error": startup_error,
         "bq_import_status": bq_import_status,
         "bq_import_error": bq_import_error,
         "current_working_dir": os.getcwd(),
