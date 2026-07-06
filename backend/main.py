@@ -656,6 +656,7 @@ def score_all_spots(rainfall_data: dict, at_time: datetime) -> list[dict]:
     return scored
 
 
+@app.get("/api/spots")
 @app.get("/spots")
 async def get_spots():
     """Return all flood spots scored against current conditions."""
@@ -690,6 +691,7 @@ async def get_spots():
     }
 
 
+@app.get("/api/spots/{spot_id}")
 @app.get("/spots/{spot_id}")
 async def get_spot(spot_id: str):
     """Return a single spot with current risk score."""
@@ -721,6 +723,7 @@ async def get_spot(spot_id: str):
     }
 
 
+@app.post("/api/spots/{spot_id}/confirm")
 @app.post("/spots/{spot_id}/confirm")
 async def confirm_spot(spot_id: str):
     """Community: mark a spot as currently flooded."""
@@ -731,6 +734,7 @@ async def confirm_spot(spot_id: str):
     return {"status": "ok", "community": updated_counts}
 
 
+@app.post("/api/spots/{spot_id}/deny")
 @app.post("/spots/{spot_id}/deny")
 async def deny_spot(spot_id: str):
     """Community: mark a spot as currently clear."""
@@ -745,6 +749,7 @@ async def deny_spot(spot_id: str):
 
 
 
+@app.get("/api/forecast")
 @app.get("/forecast")
 async def get_forecast(hour_offset: int = 0):
     """
@@ -779,6 +784,7 @@ async def get_forecast(hour_offset: int = 0):
     }
 
 
+@app.get("/api/routes")
 @app.get("/routes")
 async def get_routes():
     """Return all named routes with their associated spot IDs."""
@@ -826,6 +832,7 @@ class AskRequest(BaseModel):
     question: str
 
 
+@app.post("/api/ask")
 @app.post("/ask")
 async def ask(req: AskRequest):
     """NL ask bar: answer user question using current risk data via Gemini."""
@@ -1124,17 +1131,20 @@ async def get_doppler_latest():
         raise HTTPException(status_code=500, detail=f"Failed to fetch doppler: {e}")
 
 
+@app.get("/api/rainfall/{area}")
 @app.get("/rainfall/{area}")
 async def get_rainfall_forecast(area: str):
     key = area.lower().strip()
     return MOCK_RAINFALL_FORECASTS.get(key, DEFAULT_RAINFALL)
 
 
+@app.get("/api/sensors")
 @app.get("/sensors")
 async def get_sensors():
     return {"sensors": [{"id": s["id"], "name": s["name"], "address": s["address"], "avg_5m": s["avg_5m"], "avg_15m": s["avg_15m"], "avg_12h": s["avg_12h"], "avg_24h": s["avg_24h"]} for s in MOCK_SENSORS]}
 
 
+@app.get("/api/sensors/{sensor_id}/history")
 @app.get("/sensors/{sensor_id}/history")
 async def get_sensor_history(sensor_id: str):
     sensor = next((s for s in MOCK_SENSORS if s["id"] == sensor_id), None)

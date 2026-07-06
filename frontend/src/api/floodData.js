@@ -1,19 +1,19 @@
 export const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')
 
 export async function fetchSpots() {
-  const res = await fetch(`${BASE}/spots`)
+  const res = await fetch(`${BASE}/api/spots`)
   if (!res.ok) throw new Error('Failed to fetch spots')
   return res.json()
 }
 
 export async function fetchSpot(spotId) {
-  const res = await fetch(`${BASE}/spots/${spotId}`)
+  const res = await fetch(`${BASE}/api/spots/${spotId}`)
   if (!res.ok) throw new Error('Spot not found')
   return res.json()
 }
 
 export async function confirmSpot(spotId) {
-  const res = await fetch(`${BASE}/spots/${spotId}/confirm`, {
+  const res = await fetch(`${BASE}/api/spots/${spotId}/confirm`, {
     method: 'POST'
   })
   if (!res.ok) throw new Error('Failed to confirm')
@@ -21,7 +21,7 @@ export async function confirmSpot(spotId) {
 }
 
 export async function denySpot(spotId) {
-  const res = await fetch(`${BASE}/spots/${spotId}/deny`, {
+  const res = await fetch(`${BASE}/api/spots/${spotId}/deny`, {
     method: 'POST'
   })
   if (!res.ok) throw new Error('Failed to deny')
@@ -36,19 +36,19 @@ export async function fetchAlerts() {
 
 
 export async function fetchForecast(hourOffset) {
-  const res = await fetch(`${BASE}/forecast?hour_offset=${hourOffset}`)
+  const res = await fetch(`${BASE}/api/forecast?hour_offset=${hourOffset}`)
   if (!res.ok) throw new Error('Failed to fetch forecast')
   return res.json()
 }
 
 export async function fetchRoutes() {
-  const res = await fetch(`${BASE}/routes`)
+  const res = await fetch(`${BASE}/api/routes`)
   if (!res.ok) throw new Error('Failed to fetch routes')
   return res.json()
 }
 
 export async function askQuestion(question) {
-  const res = await fetch(`${BASE}/ask`, {
+  const res = await fetch(`${BASE}/api/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question }),
@@ -58,19 +58,19 @@ export async function askQuestion(question) {
 }
 
 export async function fetchRainfallForecast(area) {
-  const res = await fetch(`${BASE}/rainfall/${encodeURIComponent(area)}`)
+  const res = await fetch(`${BASE}/api/rainfall/${encodeURIComponent(area)}`)
   if (!res.ok) throw new Error('Failed to fetch rainfall forecast')
   return res.json()
 }
 
 export async function fetchSensors() {
-  const res = await fetch(`${BASE}/sensors`)
+  const res = await fetch(`${BASE}/api/sensors`)
   if (!res.ok) throw new Error('Failed to fetch sensors')
   return res.json()
 }
 
 export async function fetchSensorHistory(sensorId) {
-  const res = await fetch(`${BASE}/sensors/${encodeURIComponent(sensorId)}/history`)
+  const res = await fetch(`${BASE}/api/sensors/${encodeURIComponent(sensorId)}/history`)
   if (!res.ok) throw new Error('Failed to fetch sensor history')
   return res.json()
 }

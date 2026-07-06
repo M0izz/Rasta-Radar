@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchAlerts } from '../api/floodData.js'
-import { AlertOctagon, Waves, AlertTriangle, MapPin, Users, RefreshCw, Megaphone, Clock } from 'lucide-react'
+import { AlertOctagon, Waves, AlertTriangle, MapPin, Users, RefreshCw, Megaphone, Clock, Info } from 'lucide-react'
 
 export default function ReportsAlerts() {
   const [data, setData] = useState(null)
