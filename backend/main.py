@@ -12,7 +12,6 @@ from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from PIL import Image, ImageChops
 
 from risk_scoring import compute_risk_score, compute_leave_by
 from gemini_service import ask_gemini
@@ -61,6 +60,7 @@ def extract_layers(base_img_path, bg_color, threshold=25):
     Splits the base image into a clean static background (replacing colored pixels with bg_color)
     and an overlay containing only the highly saturated colored pixels.
     """
+    from PIL import Image
     base_img = Image.open(base_img_path).convert('RGB')
     width, height = base_img.size
     
@@ -85,6 +85,7 @@ def extract_layers(base_img_path, bg_color, threshold=25):
     return clean_bg, overlay
 
 def init_buffers():
+    from PIL import Image
     global NOWCAST_BG, NOWCAST_OVERLAY, DOPPLER_BG, DOPPLER_OVERLAY
     now = datetime.now(timezone.utc)
     ist_tz = timezone(timedelta(hours=5, minutes=30))
