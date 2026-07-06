@@ -145,7 +145,6 @@ async def update_radar_loop():
 async def startup_event():
     init_buffers()
     asyncio.create_task(update_radar_loop())
-    init_bigquery_tables()
 
 # Load static flood spots
 SPOTS_FILE = Path(__file__).parent / "flood_spots.json"
@@ -293,9 +292,24 @@ def init_bigquery_tables():
 import time
 cached_spots = None
 last_spots_fetch_time = 0
+db_initialized = False
+
+def ensure_db_initialized():
+    global db_initialized
+    if db_initialized:
+        return
+    db_initialized = True
+    try:
+        import threading
+        t = threading.Thread(target=init_bigquery_tables, daemon=True)
+        t.start()
+        print("Lazy BigQuery database check scheduled in background thread.")
+    except Exception as e:
+        print(f"Error launching lazy DB initializer thread: {e}")
 
 def db_get_spots():
     global cached_spots, last_spots_fetch_time
+    ensure_db_initialized()
     now = time.time()
     if cached_spots and (now - last_spots_fetch_time < 10):
         return cached_spots
@@ -349,6 +363,7 @@ def get_local_spots():
 
 def db_update_report(spot_id: str, is_confirm: bool):
     global cached_spots
+    ensure_db_initialized()
     cached_spots = None
     
     confirm_delta = 1 if is_confirm else 0
@@ -406,6 +421,7 @@ def db_update_report(spot_id: str, is_confirm: bool):
     }
 
 def db_get_community_alerts():
+    ensure_db_initialized()
     client = get_bq_client()
     if not client:
         return get_local_community_alerts()
