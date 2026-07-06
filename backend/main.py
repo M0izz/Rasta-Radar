@@ -671,6 +671,37 @@ async def deny_spot(spot_id: str):
     return {"status": "ok", "community": updated_counts}
 
 
+@app.get("/debug")
+async def get_debug_info():
+    import sys
+    import os
+    import traceback
+    
+    bq_import_status = "OK"
+    bq_import_error = None
+    try:
+        from google.cloud import bigquery
+    except Exception as e:
+        bq_import_status = "FAILED"
+        bq_import_error = f"{str(e)}\n{traceback.format_exc()}"
+        
+    safe_env = {}
+    for k, v in os.environ.items():
+        if any(sec in k.lower() for sec in ["key", "secret", "password", "token", "auth", "credentials"]):
+            safe_env[k] = "[REDACTED]"
+        else:
+            safe_env[k] = v
+
+    return {
+        "python_version": sys.version,
+        "env": safe_env,
+        "bq_import_status": bq_import_status,
+        "bq_import_error": bq_import_error,
+        "current_working_dir": os.getcwd(),
+        "files_in_dir": os.listdir(".")
+    }
+
+
 
 @app.get("/forecast")
 async def get_forecast(hour_offset: int = 0):
