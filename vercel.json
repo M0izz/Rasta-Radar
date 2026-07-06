@@ -1,25 +1,30 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend"
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "main:app"
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python"
     }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": { "service": "backend" } },
-    { "source": "/spots/(.*)", "destination": { "service": "backend" } },
-    { "source": "/spots", "destination": { "service": "backend" } },
-    { "source": "/ask", "destination": { "service": "backend" } },
-    { "source": "/forecast", "destination": { "service": "backend" } },
-    { "source": "/routes", "destination": { "service": "backend" } },
-    { "source": "/rainfall/(.*)", "destination": { "service": "backend" } },
-    { "source": "/sensors/(.*)", "destination": { "service": "backend" } },
-    { "source": "/sensors", "destination": { "service": "backend" } },
-    { "source": "/static/(.*)", "destination": { "service": "backend" } },
-    { "source": "/((?!api|spots|ask|forecast|routes|rainfall|sensors|static|assets|[^/]+\\.[^/]+$).*)", "destination": { "service": "frontend", "path": "/index.html" } },
-    { "source": "/(.*)", "destination": { "service": "frontend" } }
+  ],
+  "routes": [
+    { "src": "/spots/(.*)", "dest": "backend/main.py" },
+    { "src": "/spots", "dest": "backend/main.py" },
+    { "src": "/ask", "dest": "backend/main.py" },
+    { "src": "/forecast", "dest": "backend/main.py" },
+    { "src": "/routes", "dest": "backend/main.py" },
+    { "src": "/rainfall/(.*)", "dest": "backend/main.py" },
+    { "src": "/sensors/(.*)", "dest": "backend/main.py" },
+    { "src": "/sensors", "dest": "backend/main.py" },
+    { "src": "/static/(.*)", "dest": "backend/main.py" },
+    { "src": "/api/(.*)", "dest": "backend/main.py" },
+    { "src": "/assets/(.*)", "dest": "frontend/dist/assets/$1" },
+    { "src": "/([^/]+\\.[^/]+)", "dest": "frontend/dist/$1" },
+    { "src": "/(.*)", "dest": "frontend/dist/index.html" }
   ]
 }
