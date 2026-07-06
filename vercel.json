@@ -1,30 +1,25 @@
 {
-  "builds": [
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+  "services": {
+    "frontend": {
+      "root": "frontend"
     },
-    {
-      "src": "backend/main.py",
-      "use": "@vercel/python"
+    "backend": {
+      "root": "backend",
+      "entrypoint": "main:app"
     }
-  ],
-  "routes": [
-    { "src": "/spots/(.*)", "dest": "backend/main.py" },
-    { "src": "/spots", "dest": "backend/main.py" },
-    { "src": "/ask", "dest": "backend/main.py" },
-    { "src": "/forecast", "dest": "backend/main.py" },
-    { "src": "/routes", "dest": "backend/main.py" },
-    { "src": "/rainfall/(.*)", "dest": "backend/main.py" },
-    { "src": "/sensors/(.*)", "dest": "backend/main.py" },
-    { "src": "/sensors", "dest": "backend/main.py" },
-    { "src": "/static/(.*)", "dest": "backend/main.py" },
-    { "src": "/api/(.*)", "dest": "backend/main.py" },
-    { "src": "/assets/(.*)", "dest": "frontend/dist/assets/$1" },
-    { "src": "/([^/]+\\.[^/]+)", "dest": "frontend/dist/$1" },
-    { "src": "/(.*)", "dest": "frontend/dist/index.html" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "backend", "path": "/api/$1" } },
+    { "source": "/spots", "destination": { "service": "backend", "path": "/spots" } },
+    { "source": "/spots/(.*)", "destination": { "service": "backend", "path": "/spots/$1" } },
+    { "source": "/ask", "destination": { "service": "backend", "path": "/ask" } },
+    { "source": "/forecast", "destination": { "service": "backend", "path": "/forecast" } },
+    { "source": "/routes", "destination": { "service": "backend", "path": "/routes" } },
+    { "source": "/rainfall/(.*)", "destination": { "service": "backend", "path": "/rainfall/$1" } },
+    { "source": "/sensors", "destination": { "service": "backend", "path": "/sensors" } },
+    { "source": "/sensors/(.*)", "destination": { "service": "backend", "path": "/sensors/$1" } },
+    { "source": "/static/(.*)", "destination": { "service": "backend", "path": "/static/$1" } },
+    { "source": "/((?!api|spots|ask|forecast|routes|rainfall|sensors|static|assets|[^/]+\\.[^/]+$).*)", "destination": { "service": "frontend", "path": "/index.html" } },
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
   ]
 }
