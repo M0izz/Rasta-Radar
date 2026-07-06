@@ -671,7 +671,7 @@ async def deny_spot(spot_id: str):
     return {"status": "ok", "community": updated_counts}
 
 
-@app.get("/debug")
+@app.get("/api/debug")
 async def get_debug_info():
     import sys
     import os
