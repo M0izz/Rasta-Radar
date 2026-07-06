@@ -196,116 +196,153 @@ except Exception as e:
         startup_error = f"Error loading community_counts: {str(e)}\n{traceback.format_exc()}"
 
 # BigQuery Client Initialization
-bq_client = None
-bq_client_attempted = False
+bq_client_initialized = False
+bq_client_enabled = False
+gcp_project_id = None
+google_auth_credentials = None
 
-def get_bq_client():
-    global bq_client, bq_client_attempted
-    if bq_client_attempted:
-        return bq_client
-    bq_client_attempted = True
+def get_bq_credentials():
+    global google_auth_credentials, gcp_project_id, bq_client_initialized, bq_client_enabled
+    if bq_client_initialized:
+        return bq_client_enabled
+    bq_client_initialized = True
     try:
-        from google.cloud import bigquery
-        bq_client = bigquery.Client()
-        print("BigQuery client successfully initialized using application default credentials.")
+        import google.auth
+        credentials, project = google.auth.default(
+            scopes=['https://www.googleapis.com/auth/cloud-platform']
+        )
+        google_auth_credentials = credentials
+        gcp_project_id = project or os.environ.get("GCP_PROJECT_ID")
+        if gcp_project_id:
+            bq_client_enabled = True
+            print(f"GCP Google Auth initialized successfully for project: {gcp_project_id}")
+        else:
+            print("Warning: GCP Project ID could not be detected. BigQuery is disabled.")
+            bq_client_enabled = False
     except Exception as e:
-        print(f"Warning: Failed to initialize BigQuery client: {e}")
-        bq_client = None
-    return bq_client
+        print(f"Warning: Failed to initialize Google Auth client: {e}")
+        bq_client_enabled = False
+    return bq_client_enabled
+
+def run_bq_query(query: str):
+    if not get_bq_credentials():
+        raise Exception("BigQuery client is not configured or disabled.")
+        
+    try:
+        from google.auth.transport.requests import Request as GoogleRequest
+        import requests
+        
+        # Refresh credentials if expired
+        if not google_auth_credentials.valid:
+            google_auth_credentials.refresh(GoogleRequest())
+            
+        url = f"https://bigquery.googleapis.com/bigquery/v2/projects/{gcp_project_id}/queries"
+        headers = {
+            "Authorization": f"Bearer {google_auth_credentials.token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "query": query,
+            "useLegacySql": False
+        }
+        
+        resp = requests.post(url, headers=headers, json=payload, timeout=15.0)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        schema_fields = [f["name"] for f in data.get("schema", {}).get("fields", [])]
+        rows = []
+        for r in data.get("rows", []):
+            row_dict = {}
+            for idx, val in enumerate(r.get("f", [])):
+                field_name = schema_fields[idx]
+                field_val = val.get("v")
+                row_dict[field_name] = field_val
+            rows.append(row_dict)
+        return rows
+    except Exception as e:
+        print(f"BigQuery REST API query error: {e}")
+        raise e
 
 def init_bigquery_tables():
-    client = get_bq_client()
-    if not client:
+    if not get_bq_credentials():
         return
+        
+    print("Initializing BigQuery tables via REST API...")
     
-    from google.cloud import bigquery
-    dataset_id = f"{client.project}.rasta_radar"
-    dataset = bigquery.Dataset(dataset_id)
-    dataset.location = "US"
-    
+    # 1. Create Dataset if not exists
     try:
-        client.get_dataset(dataset_id)
-        print(f"Dataset {dataset_id} already exists.")
-    except Exception:
-        try:
-            client.create_dataset(dataset, timeout=30)
-            print(f"Created dataset {dataset_id}")
-        except Exception as e:
-            print(f"Failed to create dataset: {e}")
-            return
+        run_bq_query(f"CREATE SCHEMA IF NOT EXISTS `{gcp_project_id}.rasta_radar` OPTIONS(location='US')")
+        print(f"Dataset rasta_radar verified/created successfully.")
+    except Exception as e:
+        print(f"Failed to verify/create BigQuery dataset: {e}")
+        return
 
-    # Table 1: flood_spots
-    spots_table_id = f"{dataset_id}.flood_spots"
-    spots_schema = [
-        bigquery.SchemaField("id", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("name", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("lat", "FLOAT", mode="REQUIRED"),
-        bigquery.SchemaField("lng", "FLOAT", mode="REQUIRED"),
-        bigquery.SchemaField("severity", "INTEGER", mode="REQUIRED"),
-        bigquery.SchemaField("description", "STRING", mode="NULLABLE"),
-        bigquery.SchemaField("ward", "STRING", mode="NULLABLE"),
-    ]
-    spots_table = bigquery.Table(spots_table_id, schema=spots_schema)
-    
-    table_created = False
+    # 2. Create flood_spots table DDL
     try:
-        client.get_table(spots_table_id)
-        print(f"Table {spots_table_id} already exists.")
-    except Exception:
-        try:
-            client.create_table(spots_table, timeout=30)
-            print(f"Created table {spots_table_id}")
-            table_created = True
-        except Exception as e:
-            print(f"Failed to create table {spots_table_id}: {e}")
+        spots_table_ddl = f"""
+            CREATE TABLE IF NOT EXISTS `{gcp_project_id}.rasta_radar.flood_spots` (
+                id STRING OPTIONS(description="Unique spot key"),
+                name STRING OPTIONS(description="Display name"),
+                lat FLOAT64 OPTIONS(description="Latitude"),
+                lng FLOAT64 OPTIONS(description="Longitude"),
+                severity INT64 OPTIONS(description="Historical severity risk level"),
+                description STRING OPTIONS(description="Typical flooding description"),
+                ward STRING OPTIONS(description="Ward area")
+            )
+        """
+        run_bq_query(spots_table_ddl)
+        print("Table flood_spots verified/created successfully.")
+    except Exception as e:
+        print(f"Failed to create table flood_spots: {e}")
 
-    # Seed spots if newly created
-    if table_created:
-        try:
+    # 3. Check if flood_spots needs seeding
+    try:
+        check_rows = run_bq_query(f"SELECT COUNT(*) as count FROM `{gcp_project_id}.rasta_radar.flood_spots`")
+        count = 0
+        if check_rows:
+            count = int(check_rows[0].get("count", 0))
+            
+        if count == 0:
+            print("Seeding flood_spots table with JSON records...")
             with open(SPOTS_FILE) as f:
                 spots_data = json.load(f)
             
-            rows_to_insert = [
-                {
-                    "id": s["id"],
-                    "name": s["name"],
-                    "lat": s["lat"],
-                    "lng": s["lng"],
-                    "severity": s["historical_severity"],
-                    "description": s.get("description", ""),
-                    "ward": s.get("ward", "")
-                }
-                for s in spots_data
-            ]
+            # Build batch INSERT SQL statement
+            values_list = []
+            for s in spots_data:
+                desc = s.get("description", "").replace("'", "\\'")
+                ward = s.get("ward", "").replace("'", "\\'")
+                name = s["name"].replace("'", "\\'")
+                values_list.append(
+                    f"('{s['id']}', '{name}', {s['lat']}, {s['lng']}, {s['historical_severity']}, '{desc}', '{ward}')"
+                )
             
-            errors = client.insert_rows_json(spots_table_id, rows_to_insert)
-            if not errors:
-                print(f"Seeded {len(rows_to_insert)} spots into BigQuery.")
-            else:
-                print(f"Errors seeding spots: {errors}")
-        except Exception as e:
-            print(f"Failed to seed spots table: {e}")
+            if values_list:
+                insert_sql = f"""
+                    INSERT INTO `{gcp_project_id}.rasta_radar.flood_spots` (id, name, lat, lng, severity, description, ward)
+                    VALUES {', '.join(values_list)}
+                """
+                run_bq_query(insert_sql)
+                print(f"Successfully seeded {len(values_list)} spots into BigQuery.")
+    except Exception as e:
+        print(f"Failed to seed spots table: {e}")
 
-    # Table 2: community_reports
-    reports_table_id = f"{dataset_id}.community_reports"
-    reports_schema = [
-        bigquery.SchemaField("spot_id", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("status", "STRING", mode="REQUIRED"),
-        bigquery.SchemaField("confirms", "INTEGER", mode="REQUIRED"),
-        bigquery.SchemaField("denies", "INTEGER", mode="REQUIRED"),
-        bigquery.SchemaField("last_updated", "TIMESTAMP", mode="REQUIRED"),
-    ]
-    reports_table = bigquery.Table(reports_table_id, schema=reports_schema)
-    
+    # 4. Create community_reports table DDL
     try:
-        client.get_table(reports_table_id)
-        print(f"Table {reports_table_id} already exists.")
-    except Exception:
-        try:
-            client.create_table(reports_table, timeout=30)
-            print(f"Created table {reports_table_id}")
-        except Exception as e:
-            print(f"Failed to create table {reports_table_id}: {e}")
+        reports_table_ddl = f"""
+            CREATE TABLE IF NOT EXISTS `{gcp_project_id}.rasta_radar.community_reports` (
+                spot_id STRING OPTIONS(description="Foreign key matching flood_spots.id"),
+                status STRING OPTIONS(description="Current status clear/flooded"),
+                confirms INT64 OPTIONS(description="Confirm votes count"),
+                denies INT64 OPTIONS(description="Deny votes count"),
+                last_updated TIMESTAMP OPTIONS(description="Latest updated timing")
+            )
+        """
+        run_bq_query(reports_table_ddl)
+        print("Table community_reports verified/created successfully.")
+    except Exception as e:
+        print(f"Failed to create table community_reports: {e}")
 
 import time
 cached_spots = None
@@ -332,33 +369,31 @@ def db_get_spots():
     if cached_spots and (now - last_spots_fetch_time < 10):
         return cached_spots
         
-    client = get_bq_client()
-    if not client:
+    if not get_bq_credentials():
         return get_local_spots()
         
     try:
         query = f"""
             SELECT s.id, s.name, s.lat, s.lng, s.severity as historical_severity, s.description, s.ward,
                    r.status, COALESCE(r.confirms, 0) as confirms, COALESCE(r.denies, 0) as denies
-            FROM `{client.project}.rasta_radar.flood_spots` s
-            LEFT JOIN `{client.project}.rasta_radar.community_reports` r ON s.id = r.spot_id
+            FROM `{gcp_project_id}.rasta_radar.flood_spots` s
+            LEFT JOIN `{gcp_project_id}.rasta_radar.community_reports` r ON s.id = r.spot_id
         """
-        query_job = client.query(query)
-        rows = list(query_job.result())
+        rows = run_bq_query(query)
         
         spots = []
         for row in rows:
             spots.append({
-                "id": row.id,
-                "name": row.name,
-                "lat": row.lat,
-                "lng": row.lng,
-                "historical_severity": row.historical_severity,
-                "description": row.description or "",
-                "ward": row.ward or "",
+                "id": row.get("id"),
+                "name": row.get("name"),
+                "lat": float(row.get("lat", 0.0)),
+                "lng": float(row.get("lng", 0.0)),
+                "historical_severity": int(row.get("historical_severity", 3)),
+                "description": row.get("description") or "",
+                "ward": row.get("ward") or "",
                 "community": {
-                    "confirms": row.confirms,
-                    "denies": row.denies
+                    "confirms": int(row.get("confirms", 0)),
+                    "denies": int(row.get("denies", 0))
                 }
             })
         cached_spots = spots
@@ -394,8 +429,7 @@ def db_update_report(spot_id: str, is_confirm: bool):
         community_counts[spot_id]["denies"] += 1
     save_community_counts(community_counts)
     
-    client = get_bq_client()
-    if not client:
+    if not get_bq_credentials():
         return {
             "confirms": community_counts[spot_id]["confirms"],
             "denies": community_counts[spot_id]["denies"]
@@ -403,7 +437,7 @@ def db_update_report(spot_id: str, is_confirm: bool):
         
     try:
         query = f"""
-            MERGE `{client.project}.rasta_radar.community_reports` T
+            MERGE `{gcp_project_id}.rasta_radar.community_reports` T
             USING (SELECT '{spot_id}' as spot_id) S
             ON T.spot_id = S.spot_id
             WHEN MATCHED THEN
@@ -415,20 +449,18 @@ def db_update_report(spot_id: str, is_confirm: bool):
               INSERT (spot_id, status, confirms, denies, last_updated)
               VALUES ('{spot_id}', '{status}', {confirm_delta}, {deny_delta}, CURRENT_TIMESTAMP())
         """
-        query_job = client.query(query)
-        query_job.result()
+        run_bq_query(query)
         
         select_query = f"""
             SELECT confirms, denies 
-            FROM `{client.project}.rasta_radar.community_reports` 
+            FROM `{gcp_project_id}.rasta_radar.community_reports` 
             WHERE spot_id = '{spot_id}'
         """
-        select_job = client.query(select_query)
-        rows = list(select_job.result())
+        rows = run_bq_query(select_query)
         if rows:
             return {
-                "confirms": rows[0].confirms,
-                "denies": rows[0].denies
+                "confirms": int(rows[0].get("confirms", 0)),
+                "denies": int(rows[0].get("denies", 0))
             }
     except Exception as e:
         print(f"Error merging/updating BigQuery report: {e}")
@@ -440,29 +472,28 @@ def db_update_report(spot_id: str, is_confirm: bool):
 
 def db_get_community_alerts():
     ensure_db_initialized()
-    client = get_bq_client()
-    if not client:
+    if not get_bq_credentials():
         return get_local_community_alerts()
         
     try:
         query = f"""
             SELECT spot_id, status, confirms, denies
-            FROM `{client.project}.rasta_radar.community_reports`
+            FROM `{gcp_project_id}.rasta_radar.community_reports`
             WHERE confirms > 0
         """
-        query_job = client.query(query)
-        rows = list(query_job.result())
+        rows = run_bq_query(query)
         
         alerts = []
         for row in rows:
-            spot = next((s for s in FLOOD_SPOTS if s["id"] == row.spot_id), None)
+            spot_id = row.get("spot_id")
+            spot = next((s for s in FLOOD_SPOTS if s["id"] == spot_id), None)
             if spot:
                 alerts.append({
-                    "id": row.spot_id,
+                    "id": spot_id,
                     "name": spot["name"],
                     "area": spot["area"],
-                    "confirms": row.confirms,
-                    "denies": row.denies
+                    "confirms": int(row.get("confirms", 0)),
+                    "denies": int(row.get("denies", 0))
                 })
         return alerts
     except Exception as e:
