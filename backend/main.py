@@ -35,8 +35,11 @@ app.add_middleware(
 STATIC_DIR = Path(__file__).parent / "static"
 RADAR_DIR = STATIC_DIR / "radar"
 DOPPLER_DIR = STATIC_DIR / "doppler"
-RADAR_DIR.mkdir(parents=True, exist_ok=True)
-DOPPLER_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    RADAR_DIR.mkdir(parents=True, exist_ok=True)
+    DOPPLER_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning: Could not create static radar directories: {e}")
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
