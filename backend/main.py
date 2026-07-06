@@ -46,6 +46,20 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 rainfall_buffer = deque(maxlen=10)
 doppler_buffer = deque(maxlen=10)
 
+is_vercel = os.getenv("VERCEL") == "1" or "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+if is_vercel:
+    now_dt = datetime.now(timezone.utc)
+    rainfall_buffer.append({
+        "url": "/radar_nowcast.png",
+        "timestamp": now_dt.isoformat(),
+        "filename": "radar_nowcast.png"
+    })
+    doppler_buffer.append({
+        "url": "/doppler_radar.png",
+        "timestamp": now_dt.isoformat(),
+        "filename": "doppler_radar.png"
+    })
+
 # Frontend public folder for base images
 FRONTEND_PUBLIC = Path(__file__).parent.parent / "frontend" / "public"
 
@@ -149,6 +163,10 @@ async def update_radar_loop():
 
 @app.on_event("startup")
 async def startup_event():
+    is_vercel = os.getenv("VERCEL") == "1" or "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+    if is_vercel:
+        print("Running on Vercel serverless: skipping radar buffers pre-generation and update loop.")
+        return
     init_buffers()
     asyncio.create_task(update_radar_loop())
 
