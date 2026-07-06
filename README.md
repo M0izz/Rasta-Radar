@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-1C7293?logo=react&logoColor=white)](https://react.dev/)
 [![Gemini API](https://img.shields.io/badge/AI-Gemini%20API-8E44AD)](https://ai.google.dev/)
 
-A hyperlocal waterlogging and commute advisory for Mumbai, built for the **Gen AI Academy — APAC Edition** hackathon (Vibe2Ship). Every monsoon, commuters find out a street is flooded only after they're stuck on it — Rasta Radar tells you before you leave.
+A hyperlocal waterlogging and commute advisory for Mumbai, built for the **Gen AI Academy — APAC Edition** hackathon. Every monsoon, commuters find out a street is flooded only after they're stuck on it — Rasta Radar tells you before you leave.
 
 ⭐ **If you find this useful or you're a fellow hackathon builder, consider starring the repo — it helps it get seen.** ⭐
 
@@ -207,4 +207,4 @@ Rasta Radar is open to contributions from the community!
 
 This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
 
-*Built for the Gen AI Academy — APAC Edition hackathon (Vibe2Ship).*
+*Built for the Gen AI Academy — APAC Edition hackathon.*
