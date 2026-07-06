@@ -40,7 +40,9 @@ try:
 except Exception as e:
     print(f"Warning: Could not create static radar directories: {e}")
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+is_vercel = os.getenv("VERCEL") == "1" or "AWS_LAMBDA_FUNCTION_NAME" in os.environ
+if not is_vercel and STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Rolling buffers of last 10 frames
 rainfall_buffer = deque(maxlen=10)
